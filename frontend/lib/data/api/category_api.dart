@@ -16,4 +16,9 @@ class CategoryApi {
     }
     return ApiResponse(code: apiResp.code, message: apiResp.message);
   }
+
+  static Future<ApiResponse<dynamic>> deleteCategory(int id) async {
+    final response = await _client.delete('/categories/$id');
+    return ApiResponse.fromJson(response.data, null);
+  }
 }

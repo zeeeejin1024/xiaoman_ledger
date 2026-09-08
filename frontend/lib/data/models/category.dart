@@ -3,6 +3,7 @@ class Category {
   final String name;
   final String type;
   final String? emoji;
+  final bool isSystem;
   final List<Category> children;
 
   Category({
@@ -10,6 +11,7 @@ class Category {
     required this.name,
     required this.type,
     this.emoji,
+    this.isSystem = true,
     this.children = const [],
   });
 
@@ -19,6 +21,7 @@ class Category {
       name: json['name'],
       type: json['type'],
       emoji: json['emoji'],
+      isSystem: json['is_system'] ?? true,
       children: (json['children'] as List<dynamic>?)
               ?.map((c) => Category.fromJson(c))
               .toList() ??

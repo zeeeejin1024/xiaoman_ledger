@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart' as m;
@@ -331,15 +332,27 @@ class PremiumCard extends StatelessWidget {
   const PremiumCard({super.key, required this.child, this.padding, this.radius = 18, this.gradient, this.shadows, this.goldBorder = false, this.onTap});
   @override
   Widget build(BuildContext context) {
-    final card = Container(
-      padding: padding ?? EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: gradient ?? [AppColors.card, AppColors.cardAlt], begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(radius),
-        border: goldBorder ? Border.all(color: AppColors.premiumLight.withAlpha(180), width: 1) : null,
-        boxShadow: shadows ?? [BoxShadow(color: AppColors.ink.withAlpha(AppColors.isDark ? 30 : 8), blurRadius: AppColors.isDark ? 12 : 8, offset: const Offset(0, 3))],
+    final isDark = AppColors.isDark;
+    final defaultShadows = [
+      BoxShadow(color: AppColors.premium.withAlpha(isDark ? 20 : 8), blurRadius: 12, offset: const Offset(0, 4)),
+      BoxShadow(color: AppColors.ink.withAlpha(isDark ? 25 : 4), blurRadius: 4, offset: const Offset(0, 2)),
+    ];
+    final card = ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: padding ?? EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.card.withAlpha(200) : Colors.white.withAlpha(128),
+            gradient: gradient != null ? LinearGradient(colors: gradient!, begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: goldBorder ? AppColors.premiumLight.withAlpha(180) : AppColors.premiumLight.withAlpha(isDark ? 20 : 12)),
+            boxShadow: shadows ?? defaultShadows,
+          ),
+          child: child,
+        ),
       ),
-      child: child,
     );
     if (onTap != null) return PressScale(onTap: onTap, child: card);
     return card;
@@ -420,7 +433,13 @@ ThemeData appTheme() => ThemeData(
   pageTransitionsTheme: const PageTransitionsTheme(builders: {TargetPlatform.android: CupertinoPageTransitionsBuilder(), TargetPlatform.iOS: CupertinoPageTransitionsBuilder()}),
   appBarTheme: AppBarTheme(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: AppColors.ink, scrolledUnderElevation: 0),
   bottomNavigationBarTheme: BottomNavigationBarThemeData(backgroundColor: AppColors.navBg, selectedItemColor: AppColors.highlight, unselectedItemColor: AppColors.gray, type: BottomNavigationBarType.fixed, elevation: 0),
-  elevatedButtonTheme: ElevatedButtonThemeData(style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), minimumSize: const Size(double.infinity, 52), textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+  elevatedButtonTheme: ElevatedButtonThemeData(style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: Colors.white, elevation: 0, shadowColor: AppColors.premium.withAlpha(80), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), minimumSize: const Size(double.infinity, 52), textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+  dialogTheme: DialogThemeData(
+    backgroundColor: AppColors.isDark ? AppColors.card.withAlpha(220) : Colors.white.withAlpha(200),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22), side: BorderSide(color: AppColors.premiumLight.withAlpha(AppColors.isDark ? 20 : 25))),
+    elevation: 24,
+    shadowColor: AppColors.premium.withAlpha(25),
+  ),
   dividerTheme: DividerThemeData(color: AppColors.divider, thickness: 0.5, space: 0),
   textTheme: TextTheme(
     displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.ink, height: 1.15, letterSpacing: -0.5),

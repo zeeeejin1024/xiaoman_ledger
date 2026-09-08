@@ -7,6 +7,7 @@ import 'package:xiaojia_ledger/core/theme.dart';
 import 'package:xiaojia_ledger/core/router.dart';
 import 'package:xiaojia_ledger/data/api/auth_api.dart';
 import 'package:xiaojia_ledger/modules/auth/migration_page.dart';
+import 'package:xiaojia_ledger/modules/onboarding/onboarding_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -61,7 +62,17 @@ class _LoginPageState extends State<LoginPage> {
     const storage = FlutterSecureStorage();
     await storage.write(key: AppConstants.tokenKey, value: token);
     await storage.write(key: AppConstants.usernameKey, value: username);
-    if (mounted) Navigator.pushReplacementNamed(context, AppRouter.home);
+    if (!mounted) return;
+    // 检查是否首次登录，显示引导页
+    final prefs = await SharedPreferences.getInstance();
+    final done = prefs.getBool('onboarding_done') ?? false;
+    if (!done) {
+      await Navigator.push(context, MaterialPageRoute(builder: (_) => OnboardingPage(onComplete: () {
+        Navigator.pushReplacementNamed(context, AppRouter.home);
+      })));
+    } else {
+      Navigator.pushReplacementNamed(context, AppRouter.home);
+    }
   }
 
   void _t(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));

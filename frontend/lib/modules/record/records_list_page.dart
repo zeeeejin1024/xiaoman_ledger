@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:xiaojia_ledger/core/theme.dart';
 import 'package:xiaojia_ledger/data/api/record_api.dart';
+import 'package:xiaojia_ledger/data/api/category_api.dart';
 import 'package:xiaojia_ledger/data/models/record.dart';
+import 'package:xiaojia_ledger/data/models/category.dart';
+import 'package:xiaojia_ledger/widgets/particle_effect.dart';
 
 class RecordsListPage extends StatefulWidget {
   const RecordsListPage({super.key});
@@ -107,7 +110,10 @@ class _RecordsListPageState extends State<RecordsListPage> {
                   itemBuilder: (_, i) {
                     final date = dates[i]; final recs = grouped[date]!;
                     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Padding(padding: EdgeInsets.only(left: 4, bottom: 10, top: 4), child: Text(date, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.gray))),
+                      Padding(padding: EdgeInsets.only(left: 4, bottom: 10, top: 4), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Text(date, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.gray)),
+                          Text('支出 ¥${recs.where((r) => !r.isIncome).fold<double>(0, (sum, r) => sum + r.amount).toStringAsFixed(2)}', style: TextStyle(fontSize: 12, color: AppColors.gray)),
+                        ])),
                       GlassCard(padding: EdgeInsets.zero, child: Column(
                         children: recs.asMap().entries.map((e) {
                           final idx = e.key; final r = e.value;
@@ -124,14 +130,18 @@ class _RecordsListPageState extends State<RecordsListPage> {
                                 ])) ?? false;
                               },
                               onDismissed: (_) async { await RecordApi.deleteRecord(r.id); _load(); },
-                              child: Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14), child: Row(children: [
-                                Text(r.categoryEmoji ?? '●', style: TextStyle(fontSize: 18)), SizedBox(width: 12),
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text(r.categoryName, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink)),
-                                  if (r.note != null && r.note!.isNotEmpty) Text(r.note!, style: TextStyle(fontSize: 12, color: AppColors.gray), overflow: TextOverflow.ellipsis, maxLines: 1),
+                              child: GestureDetector(
+                                onTap: () => _editRecord(r),
+                                behavior: HitTestBehavior.opaque,
+                                child: Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14), child: Row(children: [
+                                  Text(r.categoryEmoji ?? '●', style: TextStyle(fontSize: 18)), SizedBox(width: 12),
+                                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Text(r.categoryName, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink)),
+                                    if (r.note != null && r.note!.isNotEmpty) Text(r.note!, style: TextStyle(fontSize: 12, color: AppColors.gray), overflow: TextOverflow.ellipsis, maxLines: 1),
+                                  ])),
+                                  Text('${r.isIncome ? '+' : '-'}¥${r.amount.toStringAsFixed(2)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: r.isIncome ? AppColors.sage : AppColors.coralRed)),
                                 ])),
-                                Text('${r.isIncome ? '+' : '-'}¥${r.amount.toStringAsFixed(2)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: r.isIncome ? AppColors.sage : AppColors.coralRed)),
-                              ])),
+                              ),
                             ),
                             if (idx < recs.length - 1) Divider(indent: 48),
                           ]);
@@ -182,5 +192,149 @@ class _RecordsListPageState extends State<RecordsListPage> {
         child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: active ? AppColors.ink : AppColors.gray)),
       ),
     );
+  }
+
+  Future<void> _editRecord(Record r) async {
+    HapticFeedback.lightImpact();
+    final amtCtrl = TextEditingController(text: r.amount.toStringAsFixed(2));
+    final noteCtrl = TextEditingController(text: r.note ?? '');
+    DateTime editDate = DateTime.tryParse(r.date) ?? DateTime.now();
+    Category? selectedCat;
+    List<Category> allCats = [];
+
+    // 加载分类列表
+    try {
+      final cr = await CategoryApi.getCategories();
+      if (cr.isSuccess && cr.data != null) allCats = cr.data!;
+      // 找到当前分类
+      for (final root in allCats) {
+        if (root.id == r.categoryId) { selectedCat = root; break; }
+        for (final leaf in root.leafCategories) {
+          if (leaf.id == r.categoryId) { selectedCat = leaf; break; }
+        }
+        if (selectedCat != null) break;
+      }
+    } catch (_) {}
+
+    final ok = await showDialog<bool>(context: context, builder: (ctx) {
+      return StatefulBuilder(builder: (ctx2, setSt) {
+        // 按类型筛选分类
+        final catType = r.isIncome ? 'income' : 'expense';
+        final roots = allCats.where((c) => c.type == catType).toList();
+        int? expandedCatId;
+        return AlertDialog(
+          title: Text('编辑记录'),
+          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // 金额
+            TextField(controller: amtCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: '金额', prefixText: '¥ '),),
+            SizedBox(height: 12),
+            // 分类
+            Text('分类', style: TextStyle(fontSize: 12, color: AppColors.gray)),
+            SizedBox(height: 6),
+            ...roots.map((parent) {
+              final children = parent.children.where((c) => c.type == catType).toList();
+              final isExpanded = expandedCatId == parent.id;
+              return Column(children: [
+                GestureDetector(
+                  onTap: () => setSt(() => expandedCatId = isExpanded ? null : parent.id),
+                  child: Container(
+                    margin: EdgeInsets.only(bottom: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(color: isExpanded ? AppColors.accent.withAlpha(15) : AppColors.card, borderRadius: BorderRadius.circular(12)),
+                    child: Row(children: [
+                      Text(parent.emoji ?? '', style: TextStyle(fontSize: 18)),
+                      SizedBox(width: 8),
+                      Expanded(child: Text(parent.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink))),
+                      Icon(isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: AppColors.gray, size: 22),
+                    ]),
+                  ),
+                ),
+                if (isExpanded && children.isNotEmpty) Padding(
+                  padding: EdgeInsets.only(left: 12, bottom: 8),
+                  child: Wrap(spacing: 6, runSpacing: 6, children: children.map((c) {
+                    final sel = selectedCat?.id == c.id;
+                    return GestureDetector(
+                      onTap: () => setSt(() => selectedCat = c),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: sel ? AppColors.accent.withAlpha(40) : AppColors.card, borderRadius: BorderRadius.circular(10), border: sel ? Border.all(color: AppColors.accent, width: 1.2) : null),
+                        child: Text('${c.emoji ?? ''} ${c.name}', style: TextStyle(fontSize: 12, fontWeight: sel ? FontWeight.w600 : FontWeight.w400, color: sel ? AppColors.accentDark : AppColors.ink)),
+                      ),
+                    );
+                  }).toList()),
+                ),
+              ]);
+            }),
+            SizedBox(height: 12),
+            // 日期
+            GestureDetector(
+              onTap: () async {
+                final p = await showDatePicker(context: ctx2, initialDate: editDate, firstDate: DateTime(2020), lastDate: DateTime.now());
+                if (p != null) setSt(() => editDate = p);
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
+                child: Row(children: [
+                  Icon(Icons.calendar_today, size: 16, color: AppColors.gray),
+                  SizedBox(width: 8),
+                  Text('${editDate.month}月${editDate.day}日', style: TextStyle(color: AppColors.ink, fontSize: 14)),
+                ]),
+              ),
+            ),
+            SizedBox(height: 12),
+            // 备注
+            TextField(controller: noteCtrl, decoration: InputDecoration(labelText: '备注'),),
+          ])),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx2, false), child: Text('取消')),
+            ParticleEffect(
+              onTap: () => Navigator.pop(ctx2, true),
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx2, true),
+                child: Text('保存'),
+              ),
+            ),
+          ],
+        );
+      });
+    });
+
+    if (ok == true && mounted) {
+      final newAmt = double.tryParse(amtCtrl.text);
+      if (newAmt == null || newAmt <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('请输入有效金额')));
+        return;
+      }
+      bool success = true;
+      // 逐字段更新
+      if (newAmt != r.amount) {
+        final ok = await RecordApi.updateRecord(r.id, 'amount', newAmt);
+        if (!ok) success = false;
+      }
+      if (selectedCat != null && selectedCat!.id != r.categoryId) {
+        final ok = await RecordApi.updateRecord(r.id, 'category_id', selectedCat!.id);
+        if (!ok) success = false;
+      }
+      final newDate = editDate.toIso8601String().split('T')[0];
+      if (newDate != r.date) {
+        final ok = await RecordApi.updateRecord(r.id, 'date', newDate);
+        if (!ok) success = false;
+      }
+      final newNote = noteCtrl.text.trim();
+      if (newNote != (r.note ?? '')) {
+        final ok = await RecordApi.updateRecord(r.id, 'note', newNote);
+        if (!ok) success = false;
+      }
+      if (mounted) {
+        if (success) {
+          HapticFeedback.mediumImpact();
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已更新')));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('部分更新失败')));
+        }
+        _load();
+      }
+    }
   }
 }

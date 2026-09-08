@@ -126,7 +126,6 @@ class _ProfilePageState extends State<ProfilePage> {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: s.brightness == Brightness.dark ? Brightness.light : Brightness.dark, systemNavigationBarColor: s.navBg, systemNavigationBarIconBrightness: s.brightness == Brightness.dark ? Brightness.light : Brightness.dark));
     if (mounted) {
       setState(() => _schemeIdx = index);
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomePage()), (_) => false);
     }
   }
 

@@ -1,11 +1,13 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiaojia_ledger/core/constants.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._();
   factory ApiClient() => _instance;
+
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   late final Dio dio;
   static const _storage = FlutterSecureStorage();
@@ -30,6 +32,11 @@ class ApiClient {
         if (error.response?.statusCode == 401) {
           _storage.delete(key: AppConstants.tokenKey);
           _storage.delete(key: AppConstants.usernameKey);
+          // 跳转到登录页
+          final ctx = navigatorKey.currentContext;
+          if (ctx != null) {
+            Navigator.of(ctx).pushNamedAndRemoveUntil('/login', (_) => false);
+          }
         }
         handler.next(error);
       },
@@ -50,11 +57,5 @@ class ApiClient {
 
   Future<Response> delete(String path) {
     return dio.delete(path);
-  }
-
-  Future<Response> postMultipart(String path, Map<String, dynamic> formData) {
-    final fd = FormData();
-    formData.forEach((k, v) => fd.files.add(MapEntry(k, v)));
-    return dio.post(path, data: fd, options: Options(contentType: 'multipart/form-data'));
   }
 }

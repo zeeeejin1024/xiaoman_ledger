@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -64,6 +65,7 @@ class _StatsPageState extends State<StatsPage> {
     final bal = (d['balance'] as num?)?.toDouble() ?? 0;
     final ec = (d['expense_cats'] as Map<String, dynamic>?) ?? {};
     final ic = (d['income_cats'] as Map<String, dynamic>?) ?? {};
+    final emojis = (d['cat_emojis'] as Map<String, dynamic>?) ?? {};
     final cats = _showExpense ? ec : ic;
     final total = _showExpense ? exp : inc;
     final sorted = cats.entries.toList()..sort((a, b) => (b.value as num).compareTo(a.value));
@@ -108,24 +110,39 @@ class _StatsPageState extends State<StatsPage> {
       ]),
       SizedBox(height: 20),
 
-      // 环形图
+      // 环形图（磨砂玻璃）
       if (sorted.isNotEmpty && total > 0) ...[
-        SizedBox(
-          height: 200,
-          child: Stack(alignment: Alignment.center, children: [
-            PieChart(PieChartData(
-              sectionsSpace: 2,
-              centerSpaceRadius: 55,
-              sections: sorted.take(6).toList().asMap().entries.map((e) {
-                final v = (e.value.value as num).toDouble();
-                return PieChartSectionData(value: v, color: AppColors.chartColor(e.key), radius: 18, title: '', showTitle: false);
-              }).toList(),
-            )),
-            Column(mainAxisSize: MainAxisSize.min, children: [
-              Text('¥${_fmtNum(total)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.ink)),
-              Text(_showExpense ? '总支出' : '总收入', style: TextStyle(fontSize: 12, color: AppColors.gray)),
-            ]),
-          ]),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(AppColors.isDark ? 30 : 90),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.premiumLight.withAlpha(15)),
+                boxShadow: [BoxShadow(color: AppColors.premium.withAlpha(10), blurRadius: 16)],
+              ),
+              child: SizedBox(
+                height: 200,
+                child: Stack(alignment: Alignment.center, children: [
+                  PieChart(PieChartData(
+                    sectionsSpace: 2,
+                    centerSpaceRadius: 55,
+                    sections: sorted.take(6).toList().asMap().entries.map((e) {
+                      final v = (e.value.value as num).toDouble();
+                      return PieChartSectionData(value: v, color: AppColors.chartColor(e.key), radius: 18, title: '', showTitle: false);
+                    }).toList(),
+                  )),
+                  Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text('¥${_fmtNum(total)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.ink)),
+                    Text(_showExpense ? '总支出' : '总收入', style: TextStyle(fontSize: 12, color: AppColors.gray)),
+                  ]),
+                ]),
+              ),
+            ),
+          ),
         ),
         SizedBox(height: 12),
       ],
@@ -138,18 +155,57 @@ class _StatsPageState extends State<StatsPage> {
           final v = (e.value.value as num).toDouble();
           final pct = total > 0 ? v / total : 0.0;
           final color = AppColors.chartColor(e.key);
-          return Padding(padding: EdgeInsets.only(bottom: 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Container(width: 36, height: 36, decoration: BoxDecoration(shape: BoxShape.circle, color: color.withAlpha(25)), child: Center(child: Text(e.value.key.isNotEmpty ? e.value.key[0] : '?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color)))),
-              SizedBox(width: 12),
-              Expanded(child: Text(e.value.key, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.ink))),
-              Text('¥${_fmtNum(v)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.ink)),
-              SizedBox(width: 8),
-              Text('${(pct * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 12, color: AppColors.gray)),
+          return Container(
+            margin: EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(AppColors.isDark ? 20 : 45),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withAlpha(50)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color.withAlpha(25), color.withAlpha(10)]),
+                    border: Border.all(color: color.withAlpha(15)),
+                  ),
+                  child: Center(child: Text(emojis[e.value.key] ?? (e.value.key.isNotEmpty ? e.value.key[0] : '?'), style: TextStyle(fontSize: 16))),
+                ),
+                SizedBox(width: 12),
+                Expanded(child: Text(e.value.key, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.ink))),
+                Text('¥${_fmtNum(v)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink)),
+                SizedBox(width: 8),
+                Text('${(pct * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 12, color: AppColors.gray)),
+              ]),
+              SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: pct),
+                  duration: AppAnimations.normal,
+                  curve: Curves.easeOutCubic,
+                  builder: (_, p, __) => Stack(children: [
+                    // background track
+                    Container(height: 5, decoration: BoxDecoration(color: color.withAlpha(15), borderRadius: BorderRadius.circular(3))),
+                    // gradient fill
+                    FractionallySizedBox(widthFactor: p, child: Container(height: 5, decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(3),
+                      gradient: LinearGradient(colors: [color, color.withAlpha(180)]),
+                    ))),
+                    // gloss overlay on first half
+                    if (p > 0) FractionallySizedBox(widthFactor: p * 0.5, child: Container(height: 5, decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(3),
+                      gradient: LinearGradient(colors: [Colors.white.withAlpha(60), Colors.white.withAlpha(0)]),
+                    ))),
+                  ]),
+                ),
+              ),
             ]),
-            SizedBox(height: 8),
-            ClipRRect(borderRadius: BorderRadius.circular(3), child: TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: pct), duration: AppAnimations.normal, curve: Curves.easeOutCubic, builder: (_, p, __) => LinearProgressIndicator(value: p, minHeight: 4, backgroundColor: color.withAlpha(15), valueColor: AlwaysStoppedAnimation(color)))),
-          ]));
+          );
         }),
       ],
     ]);
@@ -195,9 +251,9 @@ class _StatsPageState extends State<StatsPage> {
 
       // Hero 总金额
       Center(child: Column(children: [
-        Text('¥${_fmtNum(ti + te)}', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.ink, letterSpacing: -1.5, height: 1.1)),
+        Text('¥${_fmtNum(ti - te)}', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: (ti - te) >= 0 ? AppColors.success : AppColors.danger, letterSpacing: -1.5, height: 1.1)),
         SizedBox(height: 4),
-        Text('年度收支', style: TextStyle(fontSize: 14, color: AppColors.gray)),
+        Text('年度结余', style: TextStyle(fontSize: 14, color: AppColors.gray)),
       ])),
       SizedBox(height: 20),
 
@@ -216,15 +272,20 @@ class _StatsPageState extends State<StatsPage> {
         SizedBox(height: 24),
         Text('月度趋势', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.ink)),
         SizedBox(height: 12),
-        // 白色背景卡片
-        Container(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: AppColors.ink.withAlpha(10), blurRadius: 12, offset: Offset(0, 4))],
-          ),
-          child: Column(children: [
+        // 磨砂玻璃卡片
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(AppColors.isDark ? 30 : 90),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.premiumLight.withAlpha(15)),
+                boxShadow: [BoxShadow(color: AppColors.premium.withAlpha(10), blurRadius: 16)],
+              ),
+              child: Column(children: [
             // 收入/支出图例
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               Container(width: 10, height: 10, decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(2))), SizedBox(width: 4), Text('收入', style: TextStyle(fontSize: 12, color: AppColors.gray)),
@@ -245,7 +306,7 @@ class _StatsPageState extends State<StatsPage> {
                     touchTooltipData: BarTouchTooltipData(
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         final label = rodIndex == 0 ? '收入' : '支出';
-                        final value = rod.toY.toInt();
+                        final value = rod.toY.toStringAsFixed(2);
                         return BarTooltipItem(
                           '$label ¥$value',
                           TextStyle(color: AppColors.card, fontSize: 12, fontWeight: FontWeight.w600),
@@ -293,6 +354,8 @@ class _StatsPageState extends State<StatsPage> {
               ),
             ),
           ]),
+            ),
+          ),
         ),
       ],
     ]);

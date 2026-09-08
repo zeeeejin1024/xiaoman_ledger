@@ -42,10 +42,23 @@ class _WalletPageState extends State<WalletPage> {
         } else {
           shown = all.where((c) => budgets.containsKey(c.id)).toList();
         }
+        // 查询当月支出记录，计算每个分类的花费
+        final spentMap = <int, double>{};
+        final now = DateTime.now();
+        final month = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+        final recR = await RecordApi.getRecords(month: month);
+        if (recR.isSuccess && recR.data != null) {
+          for (final rec in recR.data!) {
+            if (!rec.isIncome) {
+              spentMap[rec.categoryId] = (spentMap[rec.categoryId] ?? 0) + rec.amount;
+            }
+          }
+        }
         if (mounted) {
           setState(() {
             _wallets = shown;
             _budgets = budgets;
+            _spent = spentMap;
             _loading = false;
           });
         }
