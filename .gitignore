@@ -44,6 +44,9 @@ secrets/
 *.log
 logs/
 
+# --- Git worktrees ---
+.worktrees/
+
 # --- Environment ---
 .env
 .env.local
