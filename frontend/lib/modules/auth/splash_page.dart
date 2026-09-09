@@ -1,6 +1,4 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiaojia_ledger/core/constants.dart';
@@ -8,6 +6,7 @@ import 'package:xiaojia_ledger/core/router.dart';
 import 'package:xiaojia_ledger/core/theme.dart';
 import 'package:xiaojia_ledger/core/notifications.dart';
 import 'package:xiaojia_ledger/core/notification_coordinator.dart';
+import 'package:xiaojia_ledger/widgets/unfinished_ring_mark.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -110,266 +109,79 @@ class _SplashPageState extends State<SplashPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.bg,
       body: AnimatedBuilder(
         animation: _ctrl,
         builder: (_, __) {
-          final t = _ctrl.value;
-
-          // Logo: scale 0→1.05→1 + rotation (first 50%)
-          final logoProgress = (t / 0.5).clamp(0.0, 1.0);
-          final logoBounce = logoProgress < 0.8
-              ? Curves.easeOutCubic.transform(logoProgress / 0.8) * 1.08
-              : 1.08 -
-                    (Curves.easeInOut.transform((logoProgress - 0.8) / 0.2) *
-                        0.08);
-          final logoScale = logoProgress <= 0 ? 0.0 : logoBounce;
-          final logoRotate =
-              (1 - Curves.easeOut.transform(logoProgress)) * 0.18;
-          // Logo 光晕脉冲
-          final glowPulse = logoProgress > 0.3
-              ? (0.3 + 0.15 * (1 + (t * 6).abs() * 0))
-              : 0.0;
-
-          // Title stagger: 25%-65%
-          final titleStart = 0.25;
-          final titleEnd = 0.65;
-
-          // Subtitle: 55%-85%
-          final subProgress = ((t - 0.55) / 0.3).clamp(0.0, 1.0);
-
+          final progress = Curves.easeOutCubic.transform(_ctrl.value);
+          final markProgress = (progress / 0.48).clamp(0.0, 1.0);
+          final titleProgress = ((progress - 0.22) / 0.4).clamp(0.0, 1.0);
+          final subtitleProgress = ((progress - 0.5) / 0.3).clamp(0.0, 1.0);
           return Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [AppColors.bg, AppColors.bgDeep],
-              ),
-            ),
-            child: Stack(
-              children: [
-                // 径向光晕
-                if (!AppColors.isDark)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          center:
-                              AppColors.scheme.bgGlowPos ?? Alignment.topCenter,
-                          radius: 1.2,
-                          colors: [
-                            AppColors.bgGlowColor.withAlpha(
-                              (18 * logoProgress).round(),
-                            ),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          center: Alignment.center,
-                          radius: 0.8,
-                          colors: [
-                            AppColors.bgGlowColor.withAlpha(
-                              (12 * logoProgress).round(),
-                            ),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // 浮动光点装饰
-                ...List.generate(5, (i) {
-                  final delay = i * 0.15;
-                  final dotProgress = ((t - delay) / 0.5).clamp(0.0, 1.0);
-                  if (dotProgress <= 0) return const SizedBox.shrink();
-                  final positions = [
-                    Offset(0.2, 0.3),
-                    Offset(0.8, 0.25),
-                    Offset(0.15, 0.7),
-                    Offset(0.85, 0.65),
-                    Offset(0.5, 0.15),
-                  ];
-                  final sizes = [6.0, 4.0, 5.0, 3.0, 4.0];
-                  final pos = positions[i];
-                  final opacity = Curves.easeOut.transform(dotProgress) * 0.3;
-                  return Positioned(
-                    left: pos.dx * MediaQuery.of(context).size.width,
-                    top: pos.dy * MediaQuery.of(context).size.height,
-                    child: Container(
-                      width: sizes[i],
-                      height: sizes[i],
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.premiumLight.withAlpha(
-                          (opacity * 255).round(),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.premiumLight.withAlpha(
-                              (opacity * 120).round(),
-                            ),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-
-                // 主体内容
-                Center(
+            color: AppColors.bg,
+            child: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Logo 带光晕
-                      Transform.rotate(
-                        angle: logoRotate,
+                      Opacity(
+                        opacity: markProgress,
                         child: Transform.scale(
-                          scale: logoScale,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // 光晕层
-                              Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      AppColors.premiumLight.withAlpha(
-                                        (60 *
-                                                Curves.easeOut.transform(
-                                                  logoProgress,
-                                                ))
-                                            .round(),
-                                      ),
-                                      AppColors.premium.withAlpha(
-                                        (20 *
-                                                Curves.easeOut.transform(
-                                                  logoProgress,
-                                                ))
-                                            .round(),
-                                      ),
-                                      Colors.transparent,
-                                    ],
-                                  ),
+                          scale: 0.86 + markProgress * 0.14,
+                          child: Container(
+                            width: 132,
+                            height: 132,
+                            padding: const EdgeInsets.all(28),
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              borderRadius: BorderRadius.circular(40),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.accent.withAlpha(35),
+                                  blurRadius: 30,
+                                  offset: const Offset(0, 16),
                                 ),
-                              ),
-                              // Logo 主体 — 毛玻璃
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(28),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(
-                                    sigmaX: 12,
-                                    sigmaY: 12,
-                                  ),
-                                  child: Container(
-                                    width: 92,
-                                    height: 92,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.premiumLight,
-                                          AppColors.premium,
-                                          AppColors.premiumDark,
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(28),
-                                      border: Border.all(
-                                        color: Colors.white.withAlpha(60),
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.premium.withAlpha(
-                                            80,
-                                          ),
-                                          blurRadius: 32,
-                                          offset: const Offset(0, 12),
-                                        ),
-                                        BoxShadow(
-                                          color: AppColors.premiumLight
-                                              .withAlpha(40),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        // 内高光
-                                        Positioned(
-                                          top: 0,
-                                          left: 12,
-                                          right: 12,
-                                          child: Container(
-                                            height: 1,
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  Colors.transparent,
-                                                  Colors.white.withAlpha(100),
-                                                  Colors.transparent,
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.savings_rounded,
-                                          color: Colors.white,
-                                          size: 42,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: const UnfinishedRingMark(
+                              size: 76,
+                              animate: true,
+                              ringColor: Color(0xFFF5F4EE),
+                              markerColor: Color(0xFFD56F54),
+                              trackColor: Color(0x335F8C7D),
+                            ),
                           ),
                         ),
                       ),
-                      SizedBox(height: 32),
-                      // Title — 渐变 shimmer
-                      _StaggeredTitle(
-                        title: _title,
-                        controller: _ctrl,
-                        start: titleStart,
-                        end: titleEnd,
-                      ),
-                      SizedBox(height: 12),
-                      // Subtitle — fade + float
+                      const SizedBox(height: 30),
                       Opacity(
-                        opacity: Curves.easeOut.transform(subProgress),
+                        opacity: Curves.easeOut.transform(titleProgress),
                         child: Transform.translate(
-                          offset: Offset(0, 16 * (1 - subProgress)),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 5,
+                          offset: Offset(0, 12 * (1 - titleProgress)),
+                          child: Text(
+                            _title,
+                            style: TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.ink,
+                              letterSpacing: 1.5,
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.premiumLight.withAlpha(10),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              _subtitle,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.gray,
-                                fontWeight: FontWeight.w400,
-                                letterSpacing: 0.5,
-                              ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Opacity(
+                        opacity: Curves.easeOut.transform(subtitleProgress),
+                        child: Transform.translate(
+                          offset: Offset(0, 10 * (1 - subtitleProgress)),
+                          child: Text(
+                            _subtitle,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.gray,
+                              letterSpacing: 0.6,
                             ),
                           ),
                         ),
@@ -377,81 +189,11 @@ class _SplashPageState extends State<SplashPage>
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           );
         },
       ),
-    );
-  }
-}
-
-class _StaggeredTitle extends StatelessWidget {
-  final String title;
-  final AnimationController controller;
-  final double start, end;
-
-  const _StaggeredTitle({
-    required this.title,
-    required this.controller,
-    required this.start,
-    required this.end,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (_, __) {
-        final chars = title.characters.toList();
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(chars.length, (i) {
-            final charStart = start + (i * 0.07);
-            final charProgress =
-                ((controller.value - charStart) / (end - start)).clamp(
-                  0.0,
-                  1.0,
-                );
-            final y = (1 - Curves.easeOutBack.transform(charProgress)) * 24;
-            final opacity = Curves.easeOut.transform(charProgress);
-            // 每个 char 微微缩放
-            final scale = charProgress < 0.5
-                ? 0.8 + Curves.easeOut.transform(charProgress * 2) * 0.2
-                : 1.0;
-            return Transform.translate(
-              offset: Offset(0, y),
-              child: Transform.scale(
-                scale: scale,
-                child: Opacity(
-                  opacity: opacity,
-                  child: ShaderMask(
-                    shaderCallback: (bounds) => LinearGradient(
-                      colors: [
-                        AppColors.ink,
-                        AppColors.premiumDark,
-                        AppColors.ink,
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      stops: [0.0, controller.value.clamp(0.3, 0.7), 1.0],
-                    ).createShader(bounds),
-                    child: Text(
-                      chars[i],
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        );
-      },
     );
   }
 }

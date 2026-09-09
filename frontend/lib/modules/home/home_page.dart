@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +21,7 @@ import 'package:xiaojia_ledger/data/api/record_api.dart';
 import 'package:xiaojia_ledger/data/api/category_api.dart';
 import 'package:xiaojia_ledger/data/models/record.dart';
 import 'package:xiaojia_ledger/data/models/category.dart';
+import 'package:xiaojia_ledger/widgets/unfinished_ring_mark.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -53,22 +53,55 @@ class _HomePageState extends State<HomePage> {
           child: pages[_tab],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _tab,
-        onTap: (i) {
-          HapticFeedback.lightImpact();
-          setState(() => _tab = i);
-        },
-        selectedFontSize: 10,
-        unselectedFontSize: 10,
-        backgroundColor: AppColors.navBg,
-        selectedItemColor: AppColors.highlight,
-        unselectedItemColor: AppColors.gray,
-        items: List.generate(
-          6,
-          (i) => BottomNavigationBarItem(
-            icon: NavIcon(index: i, active: _tab == i),
-            label: const ['首页', '统计', '存钱', '钱包', '流水', '我的'][i],
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.navBg,
+            border: Border(top: BorderSide(color: AppColors.divider)),
+          ),
+          child: NavigationBar(
+            height: 70,
+            selectedIndex: _tab,
+            onDestinationSelected: (i) {
+              HapticFeedback.lightImpact();
+              setState(() => _tab = i);
+            },
+            backgroundColor: AppColors.navBg,
+            indicatorColor: AppColors.accent.withAlpha(18),
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded),
+                label: '首页',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.insights_outlined),
+                selectedIcon: Icon(Icons.insights_rounded),
+                label: '统计',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.flag_outlined),
+                selectedIcon: Icon(Icons.flag_rounded),
+                label: '存钱',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.account_balance_wallet_outlined),
+                selectedIcon: Icon(Icons.account_balance_wallet_rounded),
+                label: '钱包',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.receipt_long_outlined),
+                selectedIcon: Icon(Icons.receipt_long_rounded),
+                label: '流水',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline_rounded),
+                selectedIcon: Icon(Icons.person_rounded),
+                label: '我的',
+              ),
+            ],
           ),
         ),
       ),
@@ -996,21 +1029,14 @@ class _DashTabState extends State<_DashTab> {
     if (_loading)
       return Center(child: CircularProgressIndicator(color: AppColors.gold));
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.bg, AppColors.bgDeep],
-        ),
-      ),
+    return PremiumBackground(
       child: RefreshIndicator(
         onRefresh: _reload,
-        color: AppColors.gold,
+        color: AppColors.highlight,
         child: ListView(
           padding: EdgeInsets.fromLTRB(
             AppSpacing.md,
-            AppSpacing.sm,
+            AppSpacing.md,
             AppSpacing.md,
             100,
           ),
@@ -1037,23 +1063,38 @@ class _DashTabState extends State<_DashTab> {
   Widget _header() {
     return Row(
       children: [
-        GestureDetector(
-          onTap: _editTitle,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _appTitle,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.ink,
-                  letterSpacing: -0.5,
+        const UnfinishedRingMark(
+          size: 38,
+          animate: true,
+          ringColor: Color(0xFF173E37),
+          markerColor: Color(0xFFD56F54),
+          trackColor: Color(0x24173E37),
+        ),
+        SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: GestureDetector(
+            onTap: _editTitle,
+            behavior: HitTestBehavior.opaque,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _appTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink,
+                  ),
                 ),
-              ),
-              SizedBox(width: AppSpacing.sm),
-              Icon(Icons.edit, size: 16, color: AppColors.gray),
-            ],
+                SizedBox(height: 3),
+                Text(
+                  '今天也留一点余地',
+                  style: TextStyle(fontSize: 12, color: AppColors.gray),
+                ),
+              ],
+            ),
           ),
         ),
         const Spacer(),
@@ -1078,179 +1119,113 @@ class _DashTabState extends State<_DashTab> {
     final isUp = changePct != null && changePct > 0;
     final changeLabel = changePct != null ? '${changePct.abs()}%' : null;
 
-    return Stack(
-      children: [
-        // 光圈装饰
-        Positioned(
-          right: -30,
-          top: -30,
-          child: Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  AppColors.bgGlowColor.withAlpha(50),
-                  Colors.transparent,
-                ],
-              ),
-            ),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
+      decoration: BoxDecoration(
+        color: AppColors.accent,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accent.withAlpha(AppColors.isDark ? 50 : 32),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
-        ),
-        Positioned(
-          left: 60,
-          bottom: -20,
-          child: Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  AppColors.bgGlowColor.withAlpha(30),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
-        // 外层玻璃
-        ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(AppColors.isDark ? 15 : 20),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.premiumLight.withAlpha(20)),
-              ),
-              padding: EdgeInsets.all(3),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(21),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 28, horizontal: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(
-                        AppColors.isDark ? 40 : 128,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '本月支出',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withAlpha(180),
                       ),
-                      borderRadius: BorderRadius.circular(21),
-                      border: Border.all(
-                        color: AppColors.premiumLight.withAlpha(30),
+                    ),
+                    SizedBox(height: 7),
+                    Text(
+                      '留有余量，才有从容。',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withAlpha(220),
+                        fontWeight: FontWeight.w600,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.premium.withAlpha(
-                            AppColors.isDark ? 18 : 12,
-                          ),
-                          blurRadius: 40,
-                          offset: const Offset(0, 12),
-                        ),
-                        BoxShadow(
-                          color: AppColors.premium.withAlpha(8),
-                          blurRadius: 8,
-                        ),
-                      ],
                     ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '本月支出',
-                          style: TextStyle(fontSize: 14, color: AppColors.ink2),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          '¥${_exp.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.ink,
-                            letterSpacing: -1.5,
-                            height: 1.05,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.premiumLight.withAlpha(
-                              AppColors.isDark ? 20 : 12,
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '今日 ¥${_todayExp.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.gray,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        if (changeLabel != null) ...[
-                          SizedBox(height: 8),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isUp
-                                    ? Icons.trending_up_rounded
-                                    : Icons.trending_down_rounded,
-                                size: 14,
-                                color: isUp
-                                    ? AppColors.danger
-                                    : AppColors.success,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                '比上月 $changeLabel',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isUp
-                                      ? AppColors.danger
-                                      : AppColors.success,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                        // 底部渐变装饰线
-                        SizedBox(height: 16),
-                        Container(
-                          height: 1.5,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.premium.withAlpha(130),
-                                AppColors.premiumLight.withAlpha(80),
-                                Colors.transparent,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(1),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
               ),
+              const UnfinishedRingMark(
+                size: 62,
+                animate: true,
+                ringColor: Color(0xFFF5F4EE),
+                markerColor: Color(0xFFD56F54),
+                trackColor: Color(0x335F8C7D),
+              ),
+            ],
+          ),
+          SizedBox(height: 20),
+          Text(
+            '¥${_exp.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: 38,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: -1.2,
+              height: 1.05,
             ),
           ),
-        ),
-      ],
+          SizedBox(height: 14),
+          Container(height: 1, color: Colors.white.withAlpha(35)),
+          SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                '今日 ¥${_todayExp.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withAlpha(180),
+                ),
+              ),
+              const Spacer(),
+              if (changeLabel != null) ...[
+                Icon(
+                  isUp
+                      ? Icons.trending_up_rounded
+                      : Icons.trending_down_rounded,
+                  size: 15,
+                  color: isUp
+                      ? const Color(0xFFF2A184)
+                      : const Color(0xFFA9D2A4),
+                ),
+                SizedBox(width: 4),
+                Text(
+                  '比上月 $changeLabel',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isUp
+                        ? const Color(0xFFF2A184)
+                        : const Color(0xFFA9D2A4),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _quickActions() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _actionBtn(Icons.edit_rounded, '记一笔', _openAdd),
         _actionBtn(Icons.camera_alt_rounded, '截图', _openOCR),
@@ -1260,37 +1235,38 @@ class _DashTabState extends State<_DashTab> {
   }
 
   Widget _actionBtn(IconData icon, String label, VoidCallback onTap) {
-    return PressScale(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 52,
-            height: 52,
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: PressScale(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.card, AppColors.cardAlt],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.ink.withAlpha(10),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: AppColors.accent, size: 22),
+                SizedBox(height: 7),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.ink2,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
-            child: Icon(icon, color: AppColors.accentDark, size: 24),
           ),
-          SizedBox(height: 6),
-          Text(label, style: TextStyle(fontSize: 12, color: AppColors.ink2)),
-        ],
+        ),
       ),
     );
   }
@@ -1634,13 +1610,26 @@ class _DashTabState extends State<_DashTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '最近流水',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColors.ink,
-          ),
+        Row(
+          children: [
+            Text(
+              '最近流水',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RecordsListPage()),
+              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+              child: const Text('查看全部'),
+            ),
+          ],
         ),
         SizedBox(height: AppSpacing.md),
         PremiumCard(
@@ -1659,9 +1648,26 @@ class _DashTabState extends State<_DashTab> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          r.categoryEmoji ?? '●',
-                          style: TextStyle(fontSize: 24),
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color:
+                                (r.isIncome
+                                        ? AppColors.success
+                                        : AppColors.accent)
+                                    .withAlpha(18),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            r.isIncome
+                                ? Icons.south_west_rounded
+                                : Icons.north_east_rounded,
+                            size: 19,
+                            color: r.isIncome
+                                ? AppColors.success
+                                : AppColors.accent,
+                          ),
                         ),
                         SizedBox(width: 12),
                         Expanded(
