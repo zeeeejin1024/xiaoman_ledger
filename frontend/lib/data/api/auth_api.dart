@@ -6,7 +6,7 @@ class AuthApi {
   static final ApiClient _client = ApiClient();
 
   // 登录（兼容用户名和手机号）
-  static Future<ApiResponse<dynamic>> login(String account, String password) async {
+  static Future<ApiResponse<AuthData>> login(String account, String password) async {
     final response = await _client.post('/auth/login', data: {'username': account, 'password': password});
     return ApiResponse.fromJson(response.data, (json) => AuthData.fromJson(json));
   }

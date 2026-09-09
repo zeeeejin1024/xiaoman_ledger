@@ -6,11 +6,16 @@ import 'package:xiaojia_ledger/core/constants.dart';
 import 'package:xiaojia_ledger/core/theme.dart';
 import 'package:xiaojia_ledger/core/router.dart';
 import 'package:xiaojia_ledger/data/api/auth_api.dart';
+import 'package:xiaojia_ledger/data/models/api_response.dart';
+import 'package:xiaojia_ledger/data/models/user.dart';
 import 'package:xiaojia_ledger/modules/auth/migration_page.dart';
 import 'package:xiaojia_ledger/modules/onboarding/onboarding_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final Future<ApiResponse<AuthData>> Function(String account, String password)
+  login;
+
+  const LoginPage({super.key, this.login = AuthApi.login});
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -27,10 +32,10 @@ class _LoginPageState extends State<LoginPage> {
     final a = _account.text.trim(), p = _pw.text;
     if (a.isEmpty || p.isEmpty) { _t('请填写完整'); return; }
     if (p.length < 6) { _t('密码至少 6 位'); return; }
-    if (_isLogin && RegExp(r'^1[3-9]\d{9}$').hasMatch(a) == false && a.contains(RegExp(r'^[a-zA-Z]')) == false) {
-      _t('请输入正确的手机号'); return;
-    }
     if (!_isLogin) {
+      if (!RegExp(r'^1[3-9]\d{9}$').hasMatch(a)) {
+        _t('请输入正确的手机号'); return;
+      }
       if (_pw2.text != p) { _t('两次密码不一致'); return; }
       if (_secQuestion.isEmpty || _secCtrl.text.trim().isEmpty) { _t('请设置密保问题和答案'); return; }
     }
@@ -42,15 +47,20 @@ class _LoginPageState extends State<LoginPage> {
         if (r.isSuccess && r.data != null) await _saveAndGo(r.data!.token, r.data!.username);
         else _t(r.message);
       } else {
-        final r = await AuthApi.login(a, p);
+        final r = await widget.login(a, p);
         if (r.isSuccess && r.data != null) {
+          await _saveSession(r.data!.token, r.data!.username);
           // 检查是否需要迁移
-          final needMigrate = r.data!.needMigrate ?? false;
+          final needMigrate = r.data!.needMigrate;
           if (needMigrate && mounted) {
             final migrated = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => MigrationPage()));
-            if (migrated == true && mounted) Navigator.pushReplacementNamed(context, AppRouter.home);
+            if (migrated == true && mounted) {
+              await _goAfterLogin();
+            } else if (mounted) {
+              await _clearSession();
+            }
           } else {
-            await _saveAndGo(r.data!.token, r.data!.username);
+            await _goAfterLogin();
           }
         } else _t(r.message);
       }
@@ -59,17 +69,40 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _saveAndGo(String token, String username) async {
+    await _saveSession(token, username);
+    await _goAfterLogin();
+  }
+
+  Future<void> _saveSession(String token, String username) async {
     const storage = FlutterSecureStorage();
     await storage.write(key: AppConstants.tokenKey, value: token);
     await storage.write(key: AppConstants.usernameKey, value: username);
+  }
+
+  Future<void> _clearSession() async {
+    const storage = FlutterSecureStorage();
+    await storage.delete(key: AppConstants.tokenKey);
+    await storage.delete(key: AppConstants.usernameKey);
+  }
+
+  Future<void> _goAfterLogin() async {
     if (!mounted) return;
     // 检查是否首次登录，显示引导页
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     final done = prefs.getBool('onboarding_done') ?? false;
     if (!done) {
-      await Navigator.push(context, MaterialPageRoute(builder: (_) => OnboardingPage(onComplete: () {
-        Navigator.pushReplacementNamed(context, AppRouter.home);
-      })));
+      await Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OnboardingPage(
+            onComplete: (onboardingContext) => Navigator.pushReplacementNamed(
+              onboardingContext,
+              AppRouter.home,
+            ),
+          ),
+        ),
+      );
     } else {
       Navigator.pushReplacementNamed(context, AppRouter.home);
     }

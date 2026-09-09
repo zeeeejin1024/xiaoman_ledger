@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiaojia_ledger/core/theme.dart';
 
 class OnboardingPage extends StatefulWidget {
-  final VoidCallback onComplete;
+  final ValueChanged<BuildContext> onComplete;
   const OnboardingPage({super.key, required this.onComplete});
 
   @override
@@ -86,7 +86,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Future<void> _finish() async {
     final p = await SharedPreferences.getInstance();
     await p.setBool('onboarding_done', true);
-    widget.onComplete();
+    if (mounted) widget.onComplete(context);
   }
 }
 
