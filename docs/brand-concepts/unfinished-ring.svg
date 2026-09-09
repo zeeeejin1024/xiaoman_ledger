@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Unfinished ring brand mark</title>
+  <desc id="desc">A deep green incomplete circle with a measured opening and coral accent.</desc>
+  <rect width="1024" height="1024" rx="224" fill="#F4F1E9"/>
+  <circle cx="512" cy="512" r="282" fill="none" stroke="#173E37" stroke-width="76" stroke-linecap="round" stroke-dasharray="1500 320" transform="rotate(-22 512 512)"/>
+  <path d="M706 248L770 312" stroke="#D56F54" stroke-width="34" stroke-linecap="round"/>
+  <path d="M746 222L794 270" stroke="#D56F54" stroke-width="16" stroke-linecap="round" opacity=".58"/>
+  <path d="M516 198V254M592 206V254M668 232V276" stroke="#173E37" stroke-width="18" stroke-linecap="round" opacity=".86"/>
+</svg>

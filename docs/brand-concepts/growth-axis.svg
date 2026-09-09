@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Growth axis brand mark</title>
+  <desc id="desc">A calm rising axis that ends in a seed-like form, representing steady financial growth.</desc>
+  <rect width="1024" height="1024" rx="224" fill="#E8EFEA"/>
+  <path d="M246 720H778" stroke="#1B3732" stroke-width="34" stroke-linecap="round"/>
+  <path d="M296 720V294" stroke="#1B3732" stroke-width="34" stroke-linecap="round"/>
+  <path d="M304 634C388 612 416 552 458 494C502 432 556 430 598 360C624 316 652 276 720 252" fill="none" stroke="#1B3732" stroke-width="58" stroke-linecap="round"/>
+  <path d="M678 250C716 224 770 230 792 270C756 302 706 304 678 250Z" fill="#D56F54"/>
+  <circle cx="304" cy="634" r="18" fill="#D56F54"/>
+  <path d="M304 720V758M402 720V748M500 720V758M598 720V748M696 720V758" stroke="#1B3732" stroke-width="14" stroke-linecap="round" opacity=".65"/>
+</svg>

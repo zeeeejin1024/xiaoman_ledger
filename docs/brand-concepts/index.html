@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小满记账品牌概念</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: #111917; color: #f4f1e9; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #111917; }
+    main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 64px 0 72px; }
+    header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+    h1 { margin: 0; font-size: clamp(30px, 5vw, 56px); letter-spacing: .02em; font-weight: 700; }
+    .intro { max-width: 420px; margin: 0; color: #a8b5ae; line-height: 1.7; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    article { min-width: 0; }
+    .tile { padding: 22px; border: 1px solid rgba(244,241,233,.12); background: #1a2623; border-radius: 20px; }
+    .tile img { display: block; width: 100%; aspect-ratio: 1; border-radius: 14px; }
+    h2 { margin: 18px 0 8px; font-size: 20px; }
+    .tag { display: inline-block; margin-bottom: 12px; color: #d56f54; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+    .note { margin: 0; color: #a8b5ae; line-height: 1.6; font-size: 14px; }
+    .scale { display: flex; align-items: center; gap: 14px; margin-top: 42px; color: #a8b5ae; font-size: 13px; }
+    .mini { width: 44px; height: 44px; border-radius: 12px; }
+    @media (max-width: 760px) { main { padding-top: 32px; } header { display: block; } .intro { margin-top: 14px; } .grid { grid-template-columns: 1fr; } .tile { display: grid; grid-template-columns: 150px 1fr; gap: 18px; align-items: center; } .tile img { grid-row: span 2; } h2 { margin: 0 0 8px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>小满记账<br>品牌概念 01</h1>
+      <p class="intro">三种不依赖“存钱罐”的品牌符号。它们都保留小满的克制、成长和生活感，并适配桌面图标、启动页与宣发物料。</p>
+    </header>
+    <section class="grid">
+      <article>
+        <div class="tile">
+          <img src="unfinished-ring.svg" alt="未满之圆概念图标">
+          <div><span class="tag">01 / modern mark</span><h2>未满之圆</h2><p class="note">接近闭合的圆环代表持续积累，缺口表达留有余地。最适合做长期品牌主标。</p></div>
+        </div>
+        <div class="scale"><img class="mini" src="unfinished-ring.svg" alt=""><span>应用商店 · 宣传海报 · 动效启动页</span></div>
+      </article>
+      <article>
+        <div class="tile">
+          <img src="oriental-seal.svg" alt="东方满字标概念图标">
+          <div><span class="tag">02 / oriental seal</span><h2>小满印记</h2><p class="note">从“满”的结构提炼格线与水滴，像印章，也像账本。文化识别度最高。</p></div>
+        </div>
+        <div class="scale"><img class="mini" src="oriental-seal.svg" alt=""><span>品牌字标 · 会员体系 · 线下物料</span></div>
+      </article>
+      <article>
+        <div class="tile">
+          <img src="growth-axis.svg" alt="成长刻度概念图标">
+          <div><span class="tag">03 / growth axis</span><h2>成长刻度</h2><p class="note">用稳定上升的曲线替代“暴涨箭头”，尾端的种子代表生活和资产一起生长。</p></div>
+        </div>
+        <div class="scale"><img class="mini" src="growth-axis.svg" alt=""><span>统计页 · 目标页 · 数据传播图</span></div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
