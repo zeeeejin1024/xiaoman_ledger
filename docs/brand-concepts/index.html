@@ -21,6 +21,26 @@
     .note { margin: 0; color: #a8b5ae; line-height: 1.6; font-size: 14px; }
     .scale { display: flex; align-items: center; gap: 14px; margin-top: 42px; color: #a8b5ae; font-size: 13px; }
     .mini { width: 44px; height: 44px; border-radius: 12px; }
+    .usage { margin-top: 18px; padding: 18px; border-radius: 20px; background: #f4f1e9; color: #172c2a; }
+    .usage h3 { margin: 0 0 14px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #6e7d76; }
+    .phone { overflow: hidden; border: 7px solid #14221f; border-radius: 30px; background: #faf9f5; box-shadow: 0 18px 30px rgba(20,34,31,.16); }
+    .phone-top { display: flex; align-items: center; justify-content: space-between; padding: 13px 15px 8px; font-size: 9px; color: #82908a; }
+    .phone-head { display: flex; align-items: center; gap: 9px; padding: 12px 15px 18px; }
+    .phone-head img { width: 38px; height: 38px; border-radius: 11px; }
+    .phone-head strong { display: block; font-size: 15px; letter-spacing: .01em; }
+    .phone-head span { display: block; margin-top: 3px; font-size: 9px; color: #82908a; }
+    .balance { margin: 0 15px; padding: 15px; border-radius: 15px; background: #173e37; color: #f4f1e9; }
+    .balance small { display: block; opacity: .7; font-size: 9px; }
+    .balance b { display: block; margin-top: 5px; font-size: 25px; letter-spacing: .02em; }
+    .balance em { display: inline-block; margin-top: 6px; padding: 3px 7px; border-radius: 99px; background: rgba(244,241,233,.12); font-style: normal; font-size: 9px; }
+    .rows { display: grid; gap: 1px; margin: 15px; border-top: 1px solid #e5e8e1; }
+    .row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #e5e8e1; font-size: 11px; }
+    .row span { color: #82908a; }
+    .row b { color: #172c2a; font-size: 11px; }
+    .phone-nav { display: grid; grid-template-columns: repeat(4, 1fr); padding: 10px 8px 12px; border-top: 1px solid #e5e8e1; color: #82908a; text-align: center; font-size: 9px; }
+    .phone-nav b { color: #d56f54; font-weight: 700; }
+    .mono { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; color: #6e7d76; font-size: 11px; }
+    .mono img { width: 28px; height: 28px; border-radius: 8px; filter: grayscale(1) contrast(1.4); }
     @media (max-width: 760px) { main { padding-top: 32px; } header { display: block; } .intro { margin-top: 14px; } .grid { grid-template-columns: 1fr; } .tile { display: grid; grid-template-columns: 150px 1fr; gap: 18px; align-items: center; } .tile img { grid-row: span 2; } h2 { margin: 0 0 8px; } }
   </style>
 </head>
@@ -37,6 +57,7 @@
           <div><span class="tag">01 / modern mark</span><h2>未满之圆</h2><p class="note">接近闭合的圆环代表持续积累，缺口表达留有余地。最适合做长期品牌主标。</p></div>
         </div>
         <div class="scale"><img class="mini" src="unfinished-ring.svg" alt=""><span>应用商店 · 宣传海报 · 动效启动页</span></div>
+        <div class="usage"><h3>Product use</h3><div class="phone"><div class="phone-top"><span>9:41</span><span>● ● ●</span></div><div class="phone-head"><img src="unfinished-ring.svg" alt=""><div><strong>小满记账</strong><span>今天也留一点余地</span></div></div><div class="balance"><small>本月结余</small><b>¥ 3,428.60</b><em>较上月 +8.4%</em></div><div class="rows"><div class="row"><span>餐饮</span><b>- ¥ 42.00</b></div><div class="row"><span>交通</span><b>- ¥ 18.50</b></div><div class="row"><span>工资</span><b>+ ¥ 6,800</b></div></div><div class="phone-nav"><b>概览</b><span>记录</span><span>统计</span><span>我的</span></div></div><div class="mono"><span>黑白小尺寸仍清晰</span><img src="unfinished-ring.svg" alt=""></div></div>
       </article>
       <article>
         <div class="tile">
@@ -44,6 +65,7 @@
           <div><span class="tag">02 / oriental seal</span><h2>小满印记</h2><p class="note">从“满”的结构提炼格线与水滴，像印章，也像账本。文化识别度最高。</p></div>
         </div>
         <div class="scale"><img class="mini" src="oriental-seal.svg" alt=""><span>品牌字标 · 会员体系 · 线下物料</span></div>
+        <div class="usage"><h3>Product use</h3><div class="phone"><div class="phone-top"><span>9:41</span><span>● ● ●</span></div><div class="phone-head"><img src="oriental-seal.svg" alt=""><div><strong>小满记账</strong><span>把每一笔都记成日子</span></div></div><div class="balance"><small>本月结余</small><b>¥ 3,428.60</b><em>预算使用 62%</em></div><div class="rows"><div class="row"><span>餐饮</span><b>- ¥ 42.00</b></div><div class="row"><span>交通</span><b>- ¥ 18.50</b></div><div class="row"><span>工资</span><b>+ ¥ 6,800</b></div></div><div class="phone-nav"><b>概览</b><span>记录</span><span>统计</span><span>我的</span></div></div><div class="mono"><span>黑白小尺寸仍清晰</span><img src="oriental-seal.svg" alt=""></div></div>
       </article>
       <article>
         <div class="tile">
@@ -51,6 +73,7 @@
           <div><span class="tag">03 / growth axis</span><h2>成长刻度</h2><p class="note">用稳定上升的曲线替代“暴涨箭头”，尾端的种子代表生活和资产一起生长。</p></div>
         </div>
         <div class="scale"><img class="mini" src="growth-axis.svg" alt=""><span>统计页 · 目标页 · 数据传播图</span></div>
+        <div class="usage"><h3>Product use</h3><div class="phone"><div class="phone-top"><span>9:41</span><span>● ● ●</span></div><div class="phone-head"><img src="growth-axis.svg" alt=""><div><strong>小满记账</strong><span>让每个月都比上个月更好</span></div></div><div class="balance"><small>本月结余</small><b>¥ 3,428.60</b><em>储蓄进度 74%</em></div><div class="rows"><div class="row"><span>餐饮</span><b>- ¥ 42.00</b></div><div class="row"><span>交通</span><b>- ¥ 18.50</b></div><div class="row"><span>工资</span><b>+ ¥ 6,800</b></div></div><div class="phone-nav"><b>概览</b><span>记录</span><span>统计</span><span>我的</span></div></div><div class="mono"><span>黑白小尺寸仍清晰</span><img src="growth-axis.svg" alt=""></div></div>
       </article>
     </section>
   </main>
