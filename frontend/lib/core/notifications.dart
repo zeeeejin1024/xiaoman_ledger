@@ -12,6 +12,8 @@ import 'notification_policy.dart';
 /// Platform adapter for local notifications.
 /// Product rules live in NotificationCoordinator.
 class NotificationService {
+  static const androidSmallIcon = 'ic_notification';
+
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
@@ -24,7 +26,7 @@ class NotificationService {
     try {
       tz.initializeTimeZones();
       tz.setLocalLocation(tz.getLocation('Asia/Shanghai'));
-      const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const android = AndroidInitializationSettings(androidSmallIcon);
       const ios = DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
@@ -339,7 +341,7 @@ class NotificationService {
       await _schedule(
         NotificationPolicy.testScheduledId,
         '定时通知测试',
-        '如果你看到这条通知，说明定时提醒功能正常！✅',
+        '如果你看到这条通知，说明定时提醒功能正常。',
         at,
         channelId: 'test',
         channelName: '测试通知',
