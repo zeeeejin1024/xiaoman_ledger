@@ -1,170 +1,170 @@
-# Android Theme, Performance, Notification, and Icon Design
+# Android 主题、性能、通知与图标优化设计方案
 
-**Date:** 2026-09-10  
-**Target:** Android first; preserve existing iOS resources and behavior  
-**Next release:** `5.8.1+7`
+**日期：** 2026-09-10  
+**目标平台：** Android 优先，保留现有 iOS 资源与行为  
+**下一版本：** `5.8.1+7`
 
-## Goal
+## 一、目标
 
-Resolve four user-visible Android problems in one controlled release:
+在一个可控版本内解决四个用户可感知的 Android 问题：
 
-1. Theme changes must update the app navigation bar and Android system navigation bar visibly and consistently.
-2. Switching primary tabs must remain smooth while preserving page state and avoiding repeated data loads.
-3. A scheduled reminder must report success only after a future notification is actually present in the platform queue.
-4. The launcher icon must use the same unfinished-ring geometry as the in-app brand mark and remain legible under Android launcher masks.
+1. 更换主题时，应用底部导航栏和 Android 系统导航栏必须立即、明显且一致地更新颜色。
+2. 切换一级页面时保持流畅，同时保留页面状态，避免重复加载数据。
+3. 只有确认未来提醒已经进入系统通知队列，定时提醒才能显示“设置成功”。
+4. 手机桌面图标必须与应用内“未满之圆”采用同一套几何构图，并在 Android 不同桌面蒙版下保持清晰。
 
-## Scope
+## 二、范围
 
-This release changes the Flutter frontend, Android notification configuration, Android launcher assets, automated tests, and Android release artifact. It does not change backend APIs, database schemas, server deployment, or iOS icon assets.
+本版本会修改 Flutter 前端、Android 通知配置、Android 桌面图标资源、自动化测试和 Android 安装包。不会修改后端接口、数据库结构、服务器部署或 iOS 图标资源。
 
-Existing unrelated backend edits and user files must not be staged, reverted, moved, or deleted.
+工作区中与本任务无关的后端修改和用户文件不得被暂存、回滚、移动或删除。
 
-## Confirmed Causes
+## 三、已确认的原因
 
-### Theme navigation mismatch
+### 3.1 主题切换后导航栏不变
 
-The global app theme already rebuilds through `AppColors.notifier`, but `HomePage` supplies its own `NavigationBar.backgroundColor` and `indicatorColor`. Those local values override `NavigationBarThemeData`. Four light themes also use navigation backgrounds that are white or visually indistinguishable, so a successful rebuild can still appear unchanged.
+全局主题已经通过 `AppColors.notifier` 触发重建，但 `HomePage` 又单独设置了 `NavigationBar.backgroundColor` 和 `indicatorColor`，覆盖了 `NavigationBarThemeData`。另外四套浅色主题的导航栏背景是纯白或视觉上非常接近白色，即使主题成功刷新，用户也很难看出变化。
 
-### Slow primary-tab switching
+### 3.2 一级页面切换卡顿
 
-`HomePage.build` creates all six primary page widgets and passes only the selected widget to `AnimatedSwitcher`. A tab that leaves the tree loses its state and may run initialization, network loading, chart construction, and list work again when revisited. The fade transition also overlaps outgoing and incoming heavy pages.
+`HomePage.build` 每次都会创建六个一级页面，并只把当前页面交给 `AnimatedSwitcher`。离开组件树的页面会丢失状态，重新进入时可能再次执行初始化、网络请求、图表创建和列表处理。淡入淡出过程中还会同时绘制两个较重页面，进一步增加掉帧概率。
 
-### Scheduled reminder reports false success
+### 3.3 定时提醒出现假成功
 
-Immediate notification testing uses `show`, while reminders use `zonedSchedule`; success in the first path does not validate the second. `NotificationCoordinator.reconcileAll` catches scheduling failures without returning them, and the settings page ignores the returned result before showing a success message. Pending queue state and next trigger time are not shown to the user.
+即时通知测试调用 `show`，定时提醒调用 `zonedSchedule`，即时通知成功并不能证明定时调度正常。`NotificationCoordinator.reconcileAll` 会捕获调度异常但不向调用方返回；设置页忽略调度结果后仍然显示成功。界面也没有展示系统待发送队列和下一次触发时间。
 
-### Launcher and in-app icons drift
+### 3.4 桌面图标与应用内图标不一致
 
-The in-app mark is drawn by `UnfinishedRingMark`, while Android vector and raster launcher assets are maintained separately. Their path geometry, marker treatment, and safe area differ. Android launchers then apply device-specific masks, which makes those differences more visible at small sizes.
+应用内标志由 `UnfinishedRingMark` 动态绘制，Android 矢量和位图桌面图标则由另一套资源独立维护，两者的圆弧路径、圆点处理和安全边距不同。Android 桌面还会应用不同厂商的图标蒙版，因此这种差异在小尺寸下更加明显。
 
-## Design
+## 四、设计方案
 
-### 1. Theme ownership
+### 4.1 主题颜色的唯一归属
 
-`AppColorScheme` remains the single theme source. Add explicit navigation tokens for surface, indicator, selected content, unselected content, and system navigation surface. Every scheme must provide visibly distinct values while preserving contrast.
+`AppColorScheme` 继续作为唯一主题来源。增加明确的导航栏颜色变量，分别控制导航背景、选中指示器、选中内容、未选中内容和系统导航栏背景。每套主题都必须在保证对比度的前提下提供肉眼可区分的颜色。
 
-`NavigationBarThemeData` owns all navigation colors. `HomePage` may own layout and the top divider but must not override theme colors. The Android status and system navigation bars are reapplied from the same selected scheme whenever the notifier changes.
+所有应用底部导航栏颜色统一交给 `NavigationBarThemeData` 管理。`HomePage` 只负责布局和顶部边线，不再覆盖主题颜色。主题监听器变化时，Android 状态栏和系统导航栏也从同一套主题重新应用颜色。
 
-Theme selection persists only after a valid index is chosen. The visible page, application navigation, and system navigation update during the same frame without restarting the app.
+只有选择了有效主题序号后才保存设置。当前页面、应用底部导航栏和系统导航栏在同一帧完成更新，不需要重启应用。
 
-### 2. Primary-tab lifecycle and motion
+### 4.2 一级页面生命周期与转场
 
-Primary pages are created lazily on first visit and retained for the lifetime of `HomePage`. Their scroll positions, selected filters, and loaded data remain intact across tab switches.
+六个一级页面在用户第一次访问时才创建，并在 `HomePage` 存续期间一直保留。切换页面后，滚动位置、筛选条件和已加载数据都不得丢失。
 
-The body uses a retained stack with one active child. Inactive tabs are excluded from semantics and hit testing. `TickerMode` disables their animations, preventing charts and decorative motion from consuming frame time while hidden.
+页面主体采用保活堆栈，只允许当前页面处于活动状态。非当前页面不参与语义访问和点击检测，并通过 `TickerMode` 暂停动画，避免隐藏状态下的图表和装饰动画继续消耗帧时间。
 
-Tab motion is limited to a short, GPU-friendly opacity and vertical translation on the newly activated layer. It must not animate layout size, blur, or rebuild the outgoing page. Target duration is 160-200 ms with an ease-out curve. Android secondary routes use one consistent transition style and timing.
+页面切换只在新页面上执行短促、适合 GPU 合成的透明度和轻微纵向位移动画。不得为转场改变布局尺寸、使用实时模糊或重建离开的页面。目标时长为 160-200 毫秒，使用缓出曲线。Android 二级页面统一使用相同的转场形式和节奏。
 
-Data pages keep their existing APIs. This work prevents avoidable reloads; it does not introduce a new global state-management framework.
+各数据页面继续使用现有接口。本次只消除可以避免的重复加载，不引入新的全局状态管理框架。
 
-### 3. Verifiable notification scheduling
+### 4.3 可验证的定时通知调度
 
-Introduce a structured scheduling result shared by the service, coordinator, and settings page. It contains:
+新增一个由通知服务、协调器和设置页共同使用的结构化调度结果，包含：
 
-- status: scheduled, permission denied, invalid time, platform unavailable, or scheduling failed;
-- next trigger timestamp;
-- number of pending requests after reconciliation;
-- whether timing is exact or may be delayed;
-- a user-safe failure message and a diagnostic code.
+- 状态：已调度、权限被拒绝、时间无效、平台不可用或调度失败；
+- 下一次触发时间；
+- 协调完成后的系统待发送通知数量；
+- 当前提醒是否准点，或可能被系统延迟；
+- 面向用户的安全提示和面向排查的诊断代码。
 
-The notification service never silently treats a past or invalid non-repeating timestamp as success. Daily policy always resolves the selected time to the next future occurrence. After scheduling, the service queries pending notification requests and confirms that the expected ID exists.
+通知服务不得再把已经过去或无效的非重复时间静默当成成功。每日提醒规则始终把用户选择的时间换算为下一个未来时刻。完成调度后，服务必须重新查询系统待发送通知，并确认预期通知 ID 确实存在。
 
-The coordinator continues to protect startup from notification plugin failures, but startup reconciliation and user-initiated scheduling are separate entry points. Startup may log and continue; a user action must receive an explicit result.
+协调器仍需防止通知插件故障导致应用启动崩溃，但“启动时自动恢复”和“用户主动设置提醒”必须使用不同入口。启动恢复失败可以记录后继续进入应用；用户主动操作必须收到明确结果。
 
-The settings page shows success only when the expected request is pending. It then displays the next reminder time and queue state. Permission denial, unsupported platform state, and scheduling errors use distinct messages. Permission-related failures include an action to open system app settings.
+设置页只有在预期通知进入系统队列后才能显示成功，并同步展示下一次提醒时间和队列状态。权限被拒绝、平台不支持和调度异常要使用不同提示。权限相关失败提供“打开系统设置”操作。
 
-The 15-second test uses the same scheduling and verification path as daily reminders. Immediate testing remains a separate control and is labelled as testing notification display only.
+15 秒定时测试与每日提醒必须共用同一套调度和校验链路。即时通知测试继续作为独立功能，并明确标注它只验证通知能否立即显示。
 
-The default Android mode remains `inexactAllowWhileIdle` for broad compatibility and lower permission friction. The interface states that delivery may be delayed by the system. Exact-alarm support is not enabled in this release; it requires a separate product decision, manifest permission review, and store-policy review.
+Android 默认继续使用 `inexactAllowWhileIdle`，以兼顾设备兼容性和较低的权限负担。界面需说明系统可能延迟几分钟送达。本版本不启用精确闹钟；该能力需要单独评估产品需求、Manifest 权限和应用商店政策。
 
-### 4. One brand-mark geometry
+### 4.4 唯一的品牌图形几何参数
 
-Create one documented set of normalized geometry constants for the unfinished ring: center, radius, stroke width, start angle, gap, marker position, marker radius, and three tick positions. `UnfinishedRingMark` consumes these constants for the animated in-app version.
+建立一套有文档说明的“未满之圆”标准化几何参数，包括中心点、半径、线宽、起始角度、缺口大小、圆点位置、圆点半径和三条刻度位置。应用内动态版本 `UnfinishedRingMark` 必须使用这些参数。
 
-Android adaptive foreground and legacy raster launcher assets are generated from the static progress-zero frame of the same geometry. The launcher background remains graphite blue; the main ring remains moon white; the marker remains rose berry. The foreground fits inside the Android adaptive icon safe zone so circular, rounded-square, and teardrop masks preserve the full mark.
+Android 自适应图标前景和旧版位图图标，都从同一套几何图形的动画第 0 帧生成。桌面图标固定使用石墨蓝背景、月白主环和蔷薇莓圆点。前景图形必须位于 Android 自适应图标安全区内，确保圆形、圆角方形和水滴形蒙版都能保留完整标志。
 
-The launcher icon is brand-fixed and does not change with the user's theme. In-app brand placements such as splash, login, and about use the brand palette. Functional progress rings may continue to use theme colors. The Android notification small icon remains a compliant monochrome silhouette.
+桌面图标属于固定品牌资产，不跟随用户主题变化。启动页、登录页和关于页等品牌位置使用固定品牌配色；表示存钱进度等功能性圆环仍可跟随主题。Android 通知栏小图标继续使用符合系统要求的单色轮廓。
 
-The unused legacy `AppIconGenerator` wallet artwork is not used as an asset source. It should be removed only if reference checks still confirm that it has no runtime consumers.
+旧的 `AppIconGenerator` 钱包图案不再作为图标资源来源。只有再次确认没有任何运行时引用后，才允许删除这段历史代码。
 
-## User Experience States
+## 五、用户可见状态
 
-### Theme
+### 5.1 主题
 
-- Selecting a theme updates the current screen and both navigation surfaces immediately.
-- Reopening the app restores the same theme.
+- 选择主题后，当前页面、应用底部导航栏和系统导航栏立即更新。
+- 重新打开应用后恢复上次选择的主题。
 
-### Tab switch
+### 5.2 页面切换
 
-- The selected navigation item responds immediately.
-- Returning to a tab restores its previous scroll and filter state.
-- A loading page continues its existing request rather than starting a duplicate request.
+- 点击导航项目后立即反馈选中状态。
+- 返回已访问页面时恢复原来的滚动位置和筛选条件。
+- 正在加载的页面继续原请求，不得重复发起相同请求。
 
-### Reminder
+### 5.3 提醒
 
-- Success: `下一次提醒：明天 21:00 · 已加入系统计划`.
-- Inexact mode: `系统可能延迟几分钟送达`.
-- Permission denied: explain the missing notification permission and offer system settings.
-- Scheduling failed: do not claim success; show a retry action and retain the selected time.
-- Queue empty after scheduling: treat as failure and expose a diagnostic code for support.
+- 成功：`下一次提醒：明天 21:00 · 已加入系统计划`。
+- 非精确模式：`系统可能延迟几分钟送达`。
+- 权限被拒绝：说明缺少通知权限，并提供前往系统设置的入口。
+- 调度失败：不得显示成功；保留用户选择的时间，并提供重试操作。
+- 调度后队列为空：按失败处理，并展示可供排查的诊断代码。
 
-## Error Handling and Diagnostics
+## 六、异常处理与诊断
 
-Notification failures are logged with operation, diagnostic code, target timestamp, schedule mode, and platform version, but never include authentication tokens or personal ledger data. The settings page exposes only user-safe wording.
+通知失败日志记录操作类型、诊断代码、目标时间、调度模式和系统版本，但不得包含登录令牌或个人账单数据。设置页只显示用户能够理解且不会泄露信息的提示。
 
-Repeated reconciliation is serialized. A queued reconciliation runs after the current one finishes, and its result cannot overwrite a newer settings selection.
+重复发起的通知协调操作必须串行执行。排队中的协调任务在当前任务结束后运行，旧任务结果不得覆盖用户更新后的设置。
 
-Theme and tab operations contain no network dependency. If a retained tab encounters a data error, it uses that page's existing retry behavior without resetting other tabs.
+主题切换和一级页面切换不依赖网络。如果保活页面遇到数据错误，继续使用该页面现有的重试方式，不得重置其他页面。
 
-## Testing
+## 七、测试方案
 
-### Automated
+### 7.1 自动化测试
 
-- Theme tests assert navigation and system-bar token changes for every scheme.
-- Widget tests switch themes while `HomePage` is mounted and inspect resolved navigation colors.
-- Widget tests switch tabs repeatedly and verify that each tab state initializes once and its state survives.
-- Notification policy tests cover future time, current minute, past time, day rollover, and the Asia/Shanghai timezone.
-- Notification service tests use an adapter seam to verify expected IDs and structured failure results.
-- Settings tests ensure success is impossible when permission is denied, scheduling throws, or the expected pending ID is absent.
-- Brand geometry tests verify a single source of normalized constants and Android safe-zone bounds.
-- Version tests require `pubspec.yaml` `5.8.1+7` and app display version `5.8.1`.
+- 主题测试验证每套主题的应用导航栏和系统导航栏颜色变量都会变化。
+- 组件测试在 `HomePage` 保持挂载时切换主题，并检查最终解析出的导航栏颜色。
+- 组件测试反复切换一级页面，确认每个页面只初始化一次，内部状态能够保留。
+- 通知规则测试覆盖未来时间、当前分钟、已过时间、跨日和 `Asia/Shanghai` 时区。
+- 通知服务通过可替换的平台适配层，验证预期通知 ID 和结构化失败结果。
+- 设置页测试确保权限被拒绝、调度抛出异常或系统队列缺少预期 ID 时绝不显示成功。
+- 品牌图形测试确保标准化几何参数只有一个来源，并验证图形处于 Android 安全区内。
+- 版本测试要求 `pubspec.yaml` 为 `5.8.1+7`，应用展示版本为 `5.8.1`。
 
-### Android device acceptance
+### 7.2 Android 真机验收
 
-Run on at least one Android 13+ physical device:
+至少使用一台 Android 13 或更高版本的实体手机完成以下测试：
 
-1. Change through all themes and verify app navigation and gesture/navigation bar colors.
-2. Switch among all six tabs repeatedly, then confirm scroll and filter state are retained.
-3. Schedule a reminder two minutes in the future and confirm the settings page shows the same next trigger.
-4. Repeat after force-closing the app, enabling battery restrictions, and rebooting the device.
-5. Deny notification permission and verify that no success message appears.
-6. Test the launcher icon with circular and rounded-square masks; use teardrop mask when supported by the launcher.
-7. Verify the notification small icon is legible and monochrome.
+1. 依次切换全部主题，检查应用底部导航栏和系统手势栏或导航栏颜色。
+2. 在六个一级页面之间连续切换，确认滚动位置和筛选条件仍然保留。
+3. 设置两分钟后的提醒，确认设置页显示相同的下一次触发时间，并实际收到通知。
+4. 强制关闭应用、开启电池限制和重启手机后，分别重复提醒测试。
+5. 关闭通知权限，确认界面不会出现任何成功提示。
+6. 分别检查圆形和圆角方形桌面蒙版；手机桌面支持时再检查水滴形蒙版。
+7. 检查通知栏小图标是否清晰并符合 Android 单色要求。
 
-Performance acceptance uses Flutter profile mode. Primary tab switching should not trigger repeated page initialization, and frame timing must show no repeatable long-frame burst caused by rebuilding the destination page. Visual judgment alone is not sufficient.
+性能w度。
 
-## Release Rules
+## 八、版本与发布规则
 
-- Increment both marketing version and build number for every installable update.
-- This release is `5.8.1+7`; later APKs must not reuse it.
-- Build the Android release APK only after the full Flutter test suite passes.
-- Verify APK version metadata, signing certificate type, installability, and SHA-256.
-- Publish the copy under `releases/android/` with the version in its filename and a matching checksum file.
-- Preserve the original Flutter build output and all iOS assets.
+- 每次提供可安装更新时，展示版本号和构建号都必须递增。
+- 本次发布版本为 `5.8.1+7`，后续 APK 不得重复使用该版本。
+- 只有完整 Flutter 测试全部通过后，才能构建 Android Release APK。
+- 必须验证 APK 版本信息、签名证书类型、可安装性和 SHA-256 校验值。
+- 发布副本放在 `releases/android/`，文件名包含版本号，并提供同名校验文件。
+- 保留 Flutter 原始构建产物和全部 iOS 资源不变。
 
-## Implementation Order
+## 九、实施顺序
 
-1. Notification result model, scheduling verification, settings states, and notification tests.
-2. Retained lazy tab host, motion, and lifecycle/performance tests.
-3. Navigation theme tokens, removal of local overrides, and theme tests.
-4. Shared brand geometry, Android icon generation, mask review, and icon tests.
-5. Version bump, full regression suite, Android device acceptance, release build, signature check, and checksum.
+1. 通知结果模型、调度校验、设置页状态和通知测试。
+2. 一级页面延迟创建与保活容器、转场和生命周期及性能测试。
+3. 导航栏主题变量、删除局部颜色覆盖和主题测试。
+4. 共享品牌几何参数、生成 Android 图标、蒙版检查和图标测试。
+5. 递增版本、完整回归测试、Android 真机验收、正式构建、签名检查和校验值生成。
 
-## Out of Scope
+## 十、本版本不包含
 
-- Exact-alarm permission and store-policy work.
-- Backend or server changes.
-- New state-management framework.
-- New navigation information architecture.
-- iOS icon replacement or iOS notification behavior changes.
-- Redesigning unrelated screens or notification types.
+- 精确闹钟权限和应用商店政策相关工作。
+- 后端或服务器修改。
+- 引入新的状态管理框架。
+- 改变应用导航信息架构。
+- 更换 iOS 图标或修改 iOS 通知行为。
+- 重做无关页面或其他通知类型。
