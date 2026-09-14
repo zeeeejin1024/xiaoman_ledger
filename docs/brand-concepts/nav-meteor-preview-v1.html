@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小满记账 - 流星导航动效预览</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #e9ecea;
+      --ink: #11151a;
+      --muted: #697077;
+      --shell: #080a10;
+      --surface: #10131a;
+      --surface-2: #171b23;
+      --line: #292e37;
+      --text: #f7f8f6;
+      --subtle: #a6a9b2;
+      --mist: #9dc5cb;
+      --mist-soft: #668e98;
+      --berry: #db7d91;
+      --green: #78b090;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+      letter-spacing: 0;
+      color: var(--ink);
+      background: var(--page);
+    }
+
+    .stage {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(340px, 440px) minmax(360px, 520px);
+      align-items: center;
+      justify-content: center;
+      gap: 76px;
+      padding: 44px 32px;
+    }
+
+    .phone {
+      width: 390px;
+      height: 820px;
+      position: relative;
+      overflow: hidden;
+      border: 8px solid #1e232a;
+      border-radius: 48px;
+      background: var(--shell);
+      box-shadow: 0 28px 70px rgba(18, 22, 26, .22);
+    }
+
+    .status {
+      height: 54px;
+      padding: 18px 24px 0;
+      display: flex;
+      justify-content: space-between;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .island {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      width: 104px;
+      height: 28px;
+      transform: translateX(-50%);
+      border: 1px solid #272c32;
+      border-radius: 18px;
+      background: #000;
+    }
+
+    .content {
+      height: calc(100% - 152px);
+      padding: 20px 22px;
+      user-select: none;
+      touch-action: pan-y;
+    }
+
+    .brand-row { display: flex; align-items: center; gap: 12px; }
+
+    .ring {
+      width: 35px;
+      height: 35px;
+      border: 6px solid #21584f;
+      border-right-color: transparent;
+      border-radius: 50%;
+      position: relative;
+      transform: rotate(-18deg);
+    }
+
+    .ring::after {
+      content: "";
+      position: absolute;
+      right: -2px;
+      bottom: -2px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--berry);
+    }
+
+    h1 { margin: 0; color: var(--text); font-size: 25px; line-height: 1.1; }
+    .tagline { margin: 6px 0 0; color: var(--subtle); font-size: 12px; }
+
+    .balance {
+      margin-top: 28px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+
+    .balance-label { color: var(--mist); font-size: 13px; }
+    .balance-value { margin-top: 12px; color: var(--text); font-size: 39px; font-weight: 760; }
+    .balance-meta { margin-top: 22px; display: flex; justify-content: space-between; color: var(--subtle); font-size: 12px; }
+
+    .quick {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .quick > div {
+      height: 88px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .quick svg { width: 23px; height: 23px; margin-bottom: 5px; stroke: var(--mist); }
+
+    .list-row {
+      margin-top: 14px;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .list-row span:last-child { color: var(--subtle); font-weight: 500; }
+
+    .nav-shell {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 108px;
+      padding: 10px 14px 18px;
+      border-top: 1px solid var(--line);
+      background: rgba(8, 10, 16, .98);
+    }
+
+    .nav {
+      height: 76px;
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+    }
+
+    .nav-item {
+      height: 68px;
+      position: relative;
+      z-index: 3;
+      border: 0;
+      padding: 7px 0 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--subtle);
+      background: transparent;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-item svg { width: 22px; height: 22px; stroke-width: 1.9; }
+    .nav-item.active { color: var(--mist); }
+
+    .meteor {
+      --from: 0;
+      --to: 0;
+      position: absolute;
+      z-index: 1;
+      top: 4px;
+      left: 0;
+      width: 20%;
+      height: 62px;
+      transform: translateX(calc(var(--to) * 100%));
+      transition: transform 240ms cubic-bezier(.22, .82, .28, 1);
+      will-change: transform;
+      pointer-events: none;
+    }
+
+    .meteor::before {
+      content: "";
+      position: absolute;
+      inset: 0 5px;
+      border: 1px solid rgba(157, 197, 203, .22);
+      border-radius: 24px;
+      background: #151b22;
+      box-shadow: inset 0 0 0 1px rgba(219, 125, 145, .04);
+    }
+
+    .meteor-tail {
+      position: absolute;
+      left: 2px;
+      top: 17px;
+      width: 58px;
+      height: 3px;
+      transform: translateX(-38px) scaleX(0);
+      transform-origin: right center;
+      border-radius: 2px;
+      opacity: 0;
+      background: linear-gradient(90deg, transparent, rgba(157, 197, 203, .2), var(--mist));
+    }
+
+    .meteor-dot {
+      position: absolute;
+      right: 11px;
+      top: 15px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--berry);
+      box-shadow: 0 0 0 3px rgba(219, 125, 145, .14), 0 0 14px rgba(157, 197, 203, .55);
+    }
+
+    .nav.moving .meteor-tail {
+      animation: trail 240ms cubic-bezier(.22, .82, .28, 1);
+    }
+
+    .nav.moving .meteor-dot { animation: pulse 240ms ease-out; }
+
+    .nav.capture .meteor-tail {
+      width: 88px;
+      opacity: .92;
+      transform: translateX(-69px) scaleX(1);
+    }
+
+    .nav.capture .meteor-dot { transform: scale(1.45); }
+
+    @keyframes trail {
+      0% { opacity: 0; transform: translateX(-26px) scaleX(.15); }
+      35% { opacity: .95; transform: translateX(-40px) scaleX(1); }
+      100% { opacity: 0; transform: translateX(-50px) scaleX(.25); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      55% { transform: scale(1.75); }
+    }
+
+    .copy { max-width: 510px; }
+    .eyebrow { color: #466f75; font-size: 13px; font-weight: 750; }
+    .copy h2 { margin: 10px 0 14px; font-size: 38px; line-height: 1.16; }
+    .copy > p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.8; }
+
+    .states {
+      margin-top: 30px;
+      display: grid;
+      gap: 1px;
+      border: 1px solid #cbd0cd;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #cbd0cd;
+    }
+
+    .state {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 16px;
+      padding: 17px 18px;
+      background: #f7f8f6;
+    }
+
+    .state strong { color: #223137; font-size: 13px; }
+    .state span { color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+    .metrics { margin-top: 24px; display: flex; gap: 24px; }
+    .metric b { display: block; color: #223137; font-size: 22px; }
+    .metric span { color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 900px) {
+      .stage { grid-template-columns: 1fr; gap: 34px; justify-items: center; padding: 28px 18px; }
+      .copy { max-width: 390px; }
+      .copy h2 { font-size: 30px; }
+      .phone { width: min(390px, calc(100vw - 36px)); height: 760px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .meteor { transition-duration: 1ms; }
+      .nav.moving .meteor-tail, .nav.moving .meteor-dot { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <section class="phone" aria-label="小满记账流星底栏预览">
+      <div class="island"></div>
+      <div class="status"><span>9:41</span><span>5G&nbsp;&nbsp;83%</span></div>
+      <div class="content" id="swipeArea">
+        <div class="brand-row">
+          <div class="ring"></div>
+          <div><h1>小满记账</h1><p class="tagline">今天也留一点余地&nbsp;&nbsp;更改</p></div>
+        </div>
+        <div class="balance">
+          <div class="balance-label">本月支出</div>
+          <div class="balance-value">¥2,286.40</div>
+          <div class="balance-meta"><span>今日 ¥36.00</span><span>比上月少 12%</span></div>
+        </div>
+        <div class="quick">
+          <div><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><br>记一笔</span></div>
+          <div><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.5 4H9.5L8 6H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3"/></svg><br>截图</span></div>
+          <div><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m12 3-1.4 3.6L7 8l3.6 1.4L12 13l1.4-3.6L17 8l-3.6-1.4Z"/><path d="m5 14-.9 2.1L2 17l2.1.9L5 20l.9-2.1L8 17l-2.1-.9Z"/><path d="m19 13-.7 1.3L17 15l1.3.7L19 17l.7-1.3L21 15l-1.3-.7Z"/></svg><br>AI 记账</span></div>
+        </div>
+        <div class="list-row"><span>省钱周报</span><span>本周少花 8% ›</span></div>
+        <div class="list-row"><span>我的钱包</span><span>3 个计划 ›</span></div>
+      </div>
+      <nav class="nav-shell">
+        <div class="nav" id="nav">
+          <div class="meteor" id="meteor"><span class="meteor-tail"></span><span class="meteor-dot"></span></div>
+          <button class="nav-item active" data-index="0" aria-label="首页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg><span>首页</span></button>
+          <button class="nav-item" data-index="1" aria-label="统计"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/></svg><span>统计</span></button>
+          <button class="nav-item" data-index="2" aria-label="存钱"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3v18"/><path d="M6 4h11l-2 4 2 4H6"/></svg><span>存钱</span></button>
+          <button class="nav-item" data-index="3" aria-label="流水"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2Z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg><span>流水</span></button>
+          <button class="nav-item" data-index="4" aria-label="我的"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>我的</span></button>
+        </div>
+      </nav>
+    </section>
+
+    <section class="copy">
+      <div class="eyebrow">交互概念 01 / 流星轨迹</div>
+      <h2>让导航有生命，但不抢内容的注意力</h2>
+      <p>点击任一入口试试。也可以在手机内容区左右拖动，光点会沿底部轨道移动，到达新入口时落下一次克制的蔷薇莓脉冲。</p>
+      <div class="states">
+        <div class="state"><strong>点击</strong><span>选中底托平移，短尾迹只在移动的 240ms 内出现。</span></div>
+        <div class="state"><strong>横滑</strong><span>页面与光点同步跟手，越过入口中心才触发一次轻震。</span></div>
+        <div class="state"><strong>降级</strong><span>低性能或“减少动态效果”开启时，自动关闭尾迹和脉冲。</span></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><b>240ms</b><span>点击过渡</span></div>
+        <div class="metric"><b>&lt; 100ms</b><span>触摸响应</span></div>
+        <div class="metric"><b>60 / 120fps</b><span>性能目标</span></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const nav = document.getElementById('nav');
+    const meteor = document.getElementById('meteor');
+    const items = [...document.querySelectorAll('.nav-item')];
+    const swipeArea = document.getElementById('swipeArea');
+    let active = 0;
+    let pointerStart = null;
+
+    function select(index) {
+      index = Math.max(0, Math.min(items.length - 1, index));
+      if (index === active) return;
+      active = index;
+      items.forEach((item, i) => item.classList.toggle('active', i === index));
+      meteor.style.setProperty('--to', index);
+      nav.classList.remove('moving');
+      void nav.offsetWidth;
+      nav.classList.add('moving');
+      if (navigator.vibrate) navigator.vibrate(12);
+      setTimeout(() => nav.classList.remove('moving'), 260);
+    }
+
+    items.forEach(item => item.addEventListener('click', () => select(Number(item.dataset.index))));
+
+    swipeArea.addEventListener('pointerdown', event => {
+      pointerStart = { x: event.clientX, active };
+      swipeArea.setPointerCapture(event.pointerId);
+    });
+
+    swipeArea.addEventListener('pointerup', event => {
+      if (!pointerStart) return;
+      const distance = event.clientX - pointerStart.x;
+      if (Math.abs(distance) > 42) select(pointerStart.active + (distance < 0 ? 1 : -1));
+      pointerStart = null;
+    });
+
+    const captureMode = new URLSearchParams(location.search).has('capture');
+    if (captureMode) {
+      active = 3;
+      items.forEach((item, i) => item.classList.toggle('active', i === active));
+      meteor.style.setProperty('--to', active);
+      nav.classList.add('capture');
+    } else if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setTimeout(() => select(1), 900);
+      setTimeout(() => select(3), 2100);
+      setTimeout(() => select(4), 3300);
+      setTimeout(() => select(0), 4500);
+      setInterval(() => {
+        select((active + 1) % items.length);
+      }, 1800);
+    }
+  </script>
+</body>
+</html>
