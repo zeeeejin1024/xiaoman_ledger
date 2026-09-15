@@ -118,3 +118,23 @@ OCR 继续负责识别真实金额、日期和商家，但模型结果不直接�
 - 自动测试通过不替代实机交互、性能、主题和通知验证。
 - 未实现的实施包不得仅通过修改版本号标记为完成。
 
+## 7. 交付索引
+
+流星效果预览：
+
+- `docs/brand-concepts/nav-meteor-preview-v2.html`
+- `docs/brand-concepts/nav-meteor-preview-v2.png`
+- `docs/brand-concepts/nav-meteor-preview-v2-mobile.png`
+
+实施顺序：
+
+| 顺序 | 计划 | 目标版本 |
+|---|---|---|
+| 1 | `docs/superpowers/plans/2026-09-15-category-wallet-rules.md` | `6.1.0+20` |
+| 2 | `docs/superpowers/plans/2026-09-15-ocr-category-confirmation.md` | `6.2.0+21` |
+| 3 | `docs/superpowers/plans/2026-09-15-voice-hybrid-intelligence.md` | `6.3.0+22` |
+| 4 | `docs/superpowers/plans/2026-09-15-record-save-navigation.md` | `6.4.0+23` |
+| 5 | `docs/superpowers/plans/2026-09-15-smart-reports-and-chart-scaling.md` | `6.5.0+24` |
+| 6 | `docs/superpowers/plans/2026-09-15-meteor-navigation-flutter.md` | `6.6.0+25` |
+| 7 | `docs/superpowers/plans/2026-09-15-theme-sync-device-closure.md` | `6.6.1+26` |
+| 8 | `docs/superpowers/plans/2026-09-15-notification-center-rebuild.md` | `7.0.0+27` |

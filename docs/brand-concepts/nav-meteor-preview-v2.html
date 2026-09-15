@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小满记账 - 轨道余辉导航预览 V2</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #e9edeb;
+      --ink: #17201f;
+      --muted: #68716f;
+      --shell: #0b0e12;
+      --surface: #12161c;
+      --surface-2: #181d24;
+      --line: #2a3038;
+      --text: #f5f7f4;
+      --subtle: #9ca5a7;
+      --mist: #9bc6cb;
+      --mist-dim: #547b80;
+      --berry: #d77f92;
+      --green: #80b397;
+      --move: cubic-bezier(.25, 1, .5, 1);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+      letter-spacing: 0;
+      color: var(--ink);
+      background: var(--page);
+    }
+    button { font: inherit; }
+
+    .stage {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(340px, 410px) minmax(360px, 520px);
+      align-items: center;
+      justify-content: center;
+      gap: 72px;
+      padding: 40px 28px;
+    }
+
+    .phone {
+      width: 390px;
+      height: 820px;
+      position: relative;
+      overflow: hidden;
+      border: 7px solid #20262c;
+      border-radius: 46px;
+      background: var(--shell);
+      box-shadow: 0 30px 76px rgba(22, 30, 28, .2);
+    }
+    .island {
+      position: absolute;
+      z-index: 10;
+      top: 11px;
+      left: 50%;
+      width: 102px;
+      height: 27px;
+      transform: translateX(-50%);
+      border: 1px solid #292e35;
+      border-radius: 18px;
+      background: #020304;
+    }
+    .status {
+      height: 54px;
+      padding: 18px 24px 0;
+      display: flex;
+      justify-content: space-between;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .viewport {
+      height: calc(100% - 154px);
+      overflow: hidden;
+      touch-action: pan-y;
+      cursor: grab;
+    }
+    .viewport.dragging { cursor: grabbing; }
+    .pages {
+      width: 500%;
+      height: 100%;
+      display: flex;
+      transform: translate3d(0, 0, 0);
+    }
+    .page {
+      width: 20%;
+      flex: 0 0 20%;
+      padding: 18px 21px;
+      user-select: none;
+    }
+    .page-kicker { color: var(--mist); font-size: 12px; font-weight: 700; }
+    .page h2 { margin: 6px 0 22px; color: var(--text); font-size: 25px; line-height: 1.25; }
+    .brand-row { display: flex; align-items: center; gap: 11px; }
+    .brand-copy h1 { margin: 0; color: var(--text); font-size: 23px; line-height: 1.1; }
+    .tagline { margin: 6px 0 0; color: var(--subtle); font-size: 11px; }
+    .tagline b { margin-left: 7px; color: var(--mist); font-weight: 700; }
+    .ring {
+      width: 36px;
+      height: 36px;
+      position: relative;
+      border: 6px solid var(--green);
+      border-right-color: transparent;
+      border-radius: 50%;
+      transform: rotate(-18deg);
+    }
+    .ring::after {
+      content: "";
+      position: absolute;
+      right: -3px;
+      bottom: -2px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--berry);
+    }
+
+    .hero {
+      margin-top: 26px;
+      padding: 24px 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+    .hero small { color: var(--mist); font-size: 12px; }
+    .hero strong { display: block; margin-top: 10px; color: var(--text); font-size: 36px; }
+    .hero footer { margin-top: 20px; display: flex; justify-content: space-between; color: var(--subtle); font-size: 11px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 13px; }
+    .tile {
+      height: 82px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--subtle);
+      font-size: 11px;
+    }
+    .tile i { display: block; margin: 0 auto 8px; color: var(--mist); font-size: 20px; font-style: normal; }
+    .row {
+      height: 72px;
+      margin-top: 12px;
+      padding: 0 17px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .row span:last-child { color: var(--subtle); font-size: 11px; font-weight: 500; }
+    .bars { height: 220px; padding: 28px 18px 18px; display: flex; align-items: end; gap: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .bars i { flex: 1; min-height: 20px; border-radius: 3px 3px 0 0; background: var(--mist-dim); }
+    .bars i:nth-child(2), .bars i:nth-child(5) { background: var(--berry); }
+    .goal { margin-top: 14px; height: 10px; overflow: hidden; border-radius: 6px; background: #242a31; }
+    .goal::after { content: ""; display: block; width: 68%; height: 100%; background: var(--green); }
+
+    .nav-shell {
+      position: absolute;
+      z-index: 20;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 100px;
+      padding: 8px 12px 15px;
+      border-top: 1px solid var(--line);
+      background: rgba(10, 13, 17, .98);
+    }
+    .nav {
+      --cell: calc(100% / 5);
+      height: 72px;
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+    }
+    .nav-item {
+      height: 66px;
+      position: relative;
+      z-index: 5;
+      border: 0;
+      padding: 7px 0 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--subtle);
+      background: transparent;
+      font-size: 10px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-item svg { width: 21px; height: 21px; stroke-width: 1.9; pointer-events: none; }
+    .nav-item span { pointer-events: none; }
+    .nav-item.active { color: var(--mist); }
+
+    .orbiter {
+      position: absolute;
+      z-index: 2;
+      top: 4px;
+      left: 0;
+      width: 20%;
+      height: 61px;
+      transform: translate3d(0, 0, 0);
+      pointer-events: none;
+    }
+    .orbiter::before {
+      content: "";
+      position: absolute;
+      inset: 0 4px;
+      border: 1px solid rgba(155, 198, 203, .2);
+      border-radius: 23px;
+      background: #151a20;
+    }
+    .core {
+      position: absolute;
+      z-index: 2;
+      left: 50%;
+      top: 12px;
+      width: 7px;
+      height: 7px;
+      margin-left: -3.5px;
+      border-radius: 50%;
+      background: var(--berry);
+      box-shadow: 0 0 10px rgba(215, 127, 146, .42);
+    }
+    .tail {
+      position: absolute;
+      z-index: 1;
+      top: 14px;
+      width: 54px;
+      height: 3px;
+      opacity: 0;
+      border-radius: 2px;
+      background: linear-gradient(90deg, transparent, rgba(155, 198, 203, .36), var(--mist));
+      transform: scaleX(.2);
+    }
+    .orbiter.right .tail { right: 50%; transform-origin: right center; }
+    .orbiter.left .tail { left: 50%; transform-origin: left center; background: linear-gradient(90deg, var(--mist), rgba(155, 198, 203, .36), transparent); }
+    .orbiter.moving .tail { opacity: .88; transform: scaleX(1); }
+    .landing {
+      position: absolute;
+      z-index: 1;
+      left: 50%;
+      top: 8px;
+      width: 15px;
+      height: 15px;
+      margin-left: -7.5px;
+      border: 1px solid rgba(215, 127, 146, .64);
+      border-radius: 50%;
+      opacity: 0;
+      transform: scale(.55);
+    }
+    .orbiter.landed .landing { animation: land 120ms ease-out; }
+    @keyframes land {
+      0% { opacity: .68; transform: scale(.55); }
+      100% { opacity: 0; transform: scale(1.45); }
+    }
+
+    .copy { max-width: 510px; }
+    .eyebrow { color: #3f6d70; font-size: 12px; font-weight: 800; }
+    .copy h2 { margin: 10px 0 14px; font-size: 38px; line-height: 1.18; }
+    .copy > p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.8; }
+    .specs { margin-top: 28px; border: 1px solid #cbd1ce; border-radius: 8px; overflow: hidden; }
+    .spec { display: grid; grid-template-columns: 78px 1fr; gap: 14px; padding: 15px 17px; background: #f7f8f6; }
+    .spec + .spec { border-top: 1px solid #d7dcda; }
+    .spec strong { color: #243331; font-size: 12px; }
+    .spec span { color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .metrics { margin-top: 22px; display: flex; gap: 25px; }
+    .metric b { display: block; font-size: 21px; color: #243331; }
+    .metric span { color: var(--muted); font-size: 11px; }
+
+    @media (max-width: 900px) {
+      .stage { grid-template-columns: 1fr; gap: 32px; justify-items: center; padding: 24px 17px; }
+      .phone { width: min(390px, calc(100vw - 34px)); height: 760px; }
+      .copy { max-width: 390px; }
+      .copy h2 { font-size: 29px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tail, .landing { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <section class="phone" aria-label="小满记账轨道余辉底栏交互预览">
+      <div class="island"></div>
+      <div class="status"><span>9:41</span><span>5G&nbsp;&nbsp;83%</span></div>
+      <div class="viewport" id="viewport">
+        <div class="pages" id="pages">
+          <section class="page">
+            <div class="brand-row"><div class="ring"></div><div class="brand-copy"><h1>小满记账</h1><p class="tagline">今天也留一点余地 <b>更改</b></p></div></div>
+            <div class="hero"><small>本月结余</small><strong>¥3,428.60</strong><footer><span>今日支出 ¥36</span><span>预算剩余 43%</span></footer></div>
+            <div class="grid"><div class="tile"><span><i>＋</i>记一笔</span></div><div class="tile"><span><i>▣</i>截图</span></div><div class="tile"><span><i>⌁</i>语音</span></div></div>
+            <div class="row"><span>省钱周报</span><span>本周少花 8% ›</span></div>
+            <div class="row"><span>我的钱包</span><span>3 个计划 ›</span></div>
+          </section>
+          <section class="page"><div class="page-kicker">消费结构</div><h2>统计</h2><div class="bars"><i style="height:42%"></i><i style="height:74%"></i><i style="height:31%"></i><i style="height:56%"></i><i style="height:91%"></i><i style="height:47%"></i></div><div class="row"><span>餐饮</span><span>¥860 · 38%</span></div><div class="row"><span>交通</span><span>¥426 · 19%</span></div></section>
+          <section class="page"><div class="page-kicker">把目标分成小步</div><h2>存钱</h2><div class="hero"><small>旅行基金</small><strong>¥6,800</strong><div class="goal"></div><footer><span>已完成 68%</span><span>还差 ¥3,200</span></footer></div><div class="row"><span>本月自动存入</span><span>¥800</span></div><div class="row"><span>连续完成</span><span>7 个月</span></div></section>
+          <section class="page"><div class="page-kicker">9 月 15 日</div><h2>流水</h2><div class="row"><span>午餐 · 餐饮</span><span>- ¥22.00</span></div><div class="row"><span>地铁公交 · 交通</span><span>- ¥3.00</span></div><div class="row"><span>兼职接单 · 收入</span><span>+ ¥480.00</span></div><div class="row"><span>超市便利 · 购物</span><span>- ¥68.50</span></div></section>
+          <section class="page"><div class="page-kicker">个人与工具</div><h2>我的</h2><div class="hero"><small>江泽锦</small><strong style="font-size:26px">连续记账 12 天</strong><footer><span>本月结余率 67.9%</span><span>›</span></footer></div><div class="row"><span>周报与月报</span><span>›</span></div><div class="row"><span>通知设置</span><span>›</span></div><div class="row"><span>主题与外观</span><span>›</span></div></section>
+        </div>
+      </div>
+      <nav class="nav-shell" aria-label="主要导航">
+        <div class="nav" id="nav">
+          <div class="orbiter right" id="orbiter"><span class="tail"></span><span class="core"></span><span class="landing"></span></div>
+          <button class="nav-item active" data-index="0" aria-label="首页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg><span>首页</span></button>
+          <button class="nav-item" data-index="1" aria-label="统计"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/></svg><span>统计</span></button>
+          <button class="nav-item" data-index="2" aria-label="存钱"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3v18"/><path d="M6 4h11l-2 4 2 4H6"/></svg><span>存钱</span></button>
+          <button class="nav-item" data-index="3" aria-label="流水"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2Z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg><span>流水</span></button>
+          <button class="nav-item" data-index="4" aria-label="我的"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>我的</span></button>
+        </div>
+      </nav>
+    </section>
+
+    <section class="copy">
+      <div class="eyebrow">交互概念 02 / 轨道余辉</div>
+      <h2>跟着手指走，停在内容之后</h2>
+      <p>点击底栏或在页面上左右拖动。尾迹会根据方向自动换边，页面、底托和星核保持同一进度；松手后由距离与速度共同决定落点。</p>
+      <div class="specs">
+        <div class="spec"><strong>点击</strong><span>220ms 快速到达；连续点击从当前位置改道，不重启动画。</span></div>
+        <div class="spec"><strong>横滑</strong><span>无缓动跟手；跨过入口中心触发一次轻震，边缘带阻尼。</span></div>
+        <div class="spec"><strong>余辉</strong><span>雾青尾迹只在移动期间出现；莓红扩散环只在落点出现 120ms。</span></div>
+        <div class="spec"><strong>降级</strong><span>减少动态效果时关闭尾迹与扩散环，只保留 120ms 位置反馈。</span></div>
+      </div>
+      <div class="metrics"><div class="metric"><b>220ms</b><span>点击移动</span></div><div class="metric"><b>&lt;70ms</b><span>触摸反馈</span></div><div class="metric"><b>60/120fps</b><span>性能目标</span></div></div>
+    </section>
+  </main>
+
+  <script>
+    const viewport = document.getElementById('viewport');
+    const pages = document.getElementById('pages');
+    const nav = document.getElementById('nav');
+    const orbiter = document.getElementById('orbiter');
+    const items = [...document.querySelectorAll('.nav-item')];
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let active = 0;
+    let visualIndex = 0;
+    let gesture = null;
+    let animationToken = 0;
+    let demoTimer = 0;
+
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const pageWidth = () => viewport.getBoundingClientRect().width;
+
+    function setTransition(enabled, duration = 220) {
+      const transition = enabled ? `transform ${duration}ms cubic-bezier(.25, 1, .5, 1)` : 'none';
+      pages.style.transition = transition;
+      orbiter.style.transition = transition;
+      items.forEach(item => item.style.transition = enabled ? `color ${Math.min(duration, 160)}ms ease-out` : 'none');
+    }
+
+    function setVisual(index, moving = false) {
+      visualIndex = clamp(index, 0, items.length - 1);
+      pages.style.transform = `translate3d(${-visualIndex * pageWidth()}px, 0, 0)`;
+      orbiter.style.transform = `translate3d(${visualIndex * nav.clientWidth / items.length}px, 0, 0)`;
+      orbiter.classList.toggle('moving', moving && !reduceMotion);
+      const nearest = clamp(Math.round(visualIndex), 0, items.length - 1);
+      items.forEach((item, i) => item.classList.toggle('active', i === nearest));
+    }
+
+    function land(index, withPulse = true) {
+      active = index;
+      visualIndex = index;
+      orbiter.classList.remove('moving');
+      if (withPulse && !reduceMotion) {
+        orbiter.classList.remove('landed');
+        void orbiter.offsetWidth;
+        orbiter.classList.add('landed');
+      }
+      if (navigator.vibrate) navigator.vibrate(9);
+      setTimeout(() => {
+        pages.style.willChange = '';
+        orbiter.style.willChange = '';
+        orbiter.classList.remove('landed');
+      }, 140);
+    }
+
+    function animateTo(index, options = {}) {
+      index = clamp(index, 0, items.length - 1);
+      const from = visualIndex;
+      if (Math.abs(index - from) < .001) return;
+      const token = ++animationToken;
+      orbiter.classList.toggle('right', index > from);
+      orbiter.classList.toggle('left', index < from);
+      pages.style.willChange = 'transform';
+      orbiter.style.willChange = 'transform';
+      const duration = reduceMotion ? 120 : 220;
+      setTransition(true, duration);
+      requestAnimationFrame(() => setVisual(index, true));
+      setTimeout(() => {
+        if (token !== animationToken) return;
+        setTransition(false);
+        land(index, options.pulse !== false);
+      }, duration + 18);
+    }
+
+    function stopDemo() {
+      if (demoTimer) clearTimeout(demoTimer);
+      demoTimer = 0;
+    }
+
+    items.forEach(item => item.addEventListener('click', event => {
+      stopDemo();
+      event.preventDefault();
+      animateTo(Number(item.dataset.index));
+    }));
+
+    viewport.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      stopDemo();
+      animationToken++;
+      setTransition(false);
+      gesture = { id: event.pointerId, startX: event.clientX, lastX: event.clientX, lastTime: performance.now(), velocity: 0, origin: active, crossed: active };
+      viewport.setPointerCapture(event.pointerId);
+      viewport.classList.add('dragging');
+      pages.style.willChange = 'transform';
+      orbiter.style.willChange = 'transform';
+    });
+
+    viewport.addEventListener('pointermove', event => {
+      if (!gesture || event.pointerId !== gesture.id) return;
+      const now = performance.now();
+      const elapsed = Math.max(1, now - gesture.lastTime);
+      gesture.velocity = (event.clientX - gesture.lastX) / elapsed * 1000;
+      gesture.lastX = event.clientX;
+      gesture.lastTime = now;
+      let progress = gesture.origin - (event.clientX - gesture.startX) / pageWidth();
+      if (progress < 0) progress *= .28;
+      if (progress > items.length - 1) progress = items.length - 1 + (progress - (items.length - 1)) * .28;
+      const directionRight = progress > visualIndex;
+      orbiter.classList.toggle('right', directionRight);
+      orbiter.classList.toggle('left', !directionRight);
+      setVisual(progress, true);
+      const crossed = clamp(Math.round(progress), 0, items.length - 1);
+      if (crossed !== gesture.crossed) {
+        gesture.crossed = crossed;
+        if (navigator.vibrate) navigator.vibrate(6);
+      }
+    });
+
+    function finishGesture(event) {
+      if (!gesture || event.pointerId !== gesture.id) return;
+      const current = visualIndex;
+      const displacement = current - gesture.origin;
+      const velocityTowardNext = -gesture.velocity;
+      let target = gesture.origin;
+      if (Math.abs(displacement) >= .18 || Math.abs(velocityTowardNext) >= 650) {
+        const direction = Math.abs(velocityTowardNext) >= 650 ? Math.sign(velocityTowardNext) : Math.sign(displacement);
+        target = clamp(gesture.origin + direction, 0, items.length - 1);
+      }
+      gesture = null;
+      viewport.classList.remove('dragging');
+      if (Math.abs(target - current) < .001) land(target, false);
+      else animateTo(target, { pulse: target !== active });
+    }
+
+    viewport.addEventListener('pointerup', finishGesture);
+    viewport.addEventListener('pointercancel', finishGesture);
+    window.addEventListener('resize', () => { setTransition(false); setVisual(active, false); });
+
+    if (!reduceMotion && !new URLSearchParams(location.search).has('capture')) {
+      demoTimer = setTimeout(() => animateTo(1, { pulse: true }), 850);
+    }
+    if (new URLSearchParams(location.search).has('capture')) {
+      active = 1;
+      setTransition(false);
+      setVisual(1, true);
+      orbiter.classList.add('right');
+      pages.style.willChange = '';
+      orbiter.style.willChange = '';
+    }
+  </script>
+</body>
+</html>
