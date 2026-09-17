@@ -59,6 +59,18 @@ export const MeteorTrail: React.FC<MeteorTrailProps> = ({
       </defs>
 
       <path d={trailPath} fill="none" stroke="url(#meteor-tail-soft)" strokeWidth="9" strokeLinecap="round" filter="url(#meteor-soft-glow)" />
+      {visual.history.map((historyPoint, index) => (
+        <ellipse
+          key={`history-${index}`}
+          cx={historyPoint.x}
+          cy={historyPoint.y}
+          rx={historyPoint.radius * (0.8 + visual.stretch * 0.55)}
+          ry={historyPoint.radius * 0.58}
+          fill={color}
+          opacity={historyPoint.opacity * 0.48}
+          filter={index < 4 ? "url(#meteor-soft-glow)" : undefined}
+        />
+      ))}
       <path d={trailPath} fill="none" stroke="url(#meteor-tail-hot)" strokeWidth="2.6" strokeLinecap="round" />
 
       {visual.afterimages.map((afterimage, index) => (
