@@ -14,4 +14,13 @@ describe("Remotion markup", () => {
     );
     expect(source).toContain("MagneticMeteorComparison");
   });
+
+  it("uses liquid-glass-react for the magnetic target", () => {
+    const source = readFileSync(
+      new URL("./components/LiquidGlassTarget.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain('from "liquid-glass-react"');
+    expect(source).toContain("<LiquidGlass");
+  });
 });

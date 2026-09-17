@@ -3,6 +3,7 @@ import {getGestureSample} from "../motion/gestureTimeline";
 import {getMagneticTargetState} from "../motion/magneticTarget";
 import {buildMeteorVisual} from "../motion/meteorHistory";
 import {LegacyGlowBar} from "./LegacyGlowBar";
+import {LiquidGlassTarget} from "./LiquidGlassTarget";
 import {MeteorTrail} from "./MeteorTrail";
 
 type NavigationSceneProps = {
@@ -60,6 +61,13 @@ export const NavigationScene: React.FC<NavigationSceneProps> = ({variant}) => {
           </div>
         </div>
         <div className="bottom-nav">
+          {variant === "magnetic" ? (
+            <LiquidGlassTarget
+              targetPage={sample.targetPage}
+              direction={direction}
+              magnetic={magnetic}
+            />
+          ) : null}
           <div className="motion-layer">
             {variant === "legacy" ? (
               <LegacyGlowBar page={sample.page} />
