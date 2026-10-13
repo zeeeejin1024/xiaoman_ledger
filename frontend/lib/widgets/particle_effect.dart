@@ -8,9 +8,12 @@ class _Particle {
   double x, y, dx, dy, radius, opacity;
   final Color color;
   _Particle({
-    required this.x, required this.y,
-    required this.dx, required this.dy,
-    required this.radius, required this.opacity,
+    required this.x,
+    required this.y,
+    required this.dx,
+    required this.dy,
+    required this.radius,
+    required this.opacity,
     required this.color,
   });
 }
@@ -58,7 +61,8 @@ class ParticleEffect extends StatefulWidget {
   State<ParticleEffect> createState() => _ParticleEffectState();
 }
 
-class _ParticleEffectState extends State<ParticleEffect> with SingleTickerProviderStateMixin {
+class _ParticleEffectState extends State<ParticleEffect>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   List<_Particle> _particles = [];
   bool _animating = false;
@@ -89,7 +93,8 @@ class _ParticleEffectState extends State<ParticleEffect> with SingleTickerProvid
       final angle = rng.nextDouble() * 2 * pi;
       final speed = 60 + rng.nextDouble() * 120;
       return _Particle(
-        x: 0, y: 0,
+        x: 0,
+        y: 0,
         dx: cos(angle) * speed,
         dy: sin(angle) * speed - 40, // 向上偏移
         radius: 2 + rng.nextDouble() * 4,
@@ -137,9 +142,7 @@ class _ParticleEffectState extends State<ParticleEffect> with SingleTickerProvid
           if (_animating && _particles.isNotEmpty)
             Positioned.fill(
               child: IgnorePointer(
-                child: CustomPaint(
-                  painter: ParticlePainter(_particles),
-                ),
+                child: CustomPaint(painter: ParticlePainter(_particles)),
               ),
             ),
         ],

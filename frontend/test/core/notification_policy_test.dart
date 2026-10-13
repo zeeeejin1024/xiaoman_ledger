@@ -59,6 +59,19 @@ void main() {
   });
 
   group('NotificationPolicy IDs and thresholds', () {
+    test('keeps the old recurring ID as the start of the replacement window', () {
+      expect(NotificationPolicy.dailyReminderId, 100090);
+    });
+
+    test('identifies only the ninety legacy daily reminder IDs', () {
+      final ids = NotificationPolicy.legacyDailyIds.toList();
+
+      expect(ids.length, 90);
+      expect(ids.first, 100000);
+      expect(ids.last, 100089);
+      expect(ids, isNot(contains(NotificationPolicy.dailyReminderId)));
+    });
+
     test('keeps IDs in their documented non-overlapping ranges', () {
       final dates = NotificationPolicy.dailyOccurrences(
         now: DateTime(2026, 9, 8, 20),

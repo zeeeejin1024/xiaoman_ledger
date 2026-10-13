@@ -4,6 +4,14 @@ import 'package:xiaojia_ledger/core/theme.dart';
 import 'package:xiaojia_ledger/data/api/savings_api.dart';
 import 'package:xiaojia_ledger/widgets/unfinished_ring_mark.dart';
 
+String formatSavingsDepositTime(String? value) {
+  if (value == null || value.isEmpty) return '升级前累计';
+  final time = DateTime.tryParse(value)?.toLocal();
+  if (time == null) return '时间未知';
+  final minute = time.minute.toString().padLeft(2, '0');
+  return '${time.year}年${time.month}月${time.day}日 ${time.hour}:$minute';
+}
+
 class SavingsPage extends StatefulWidget {
   const SavingsPage({super.key});
   @override
@@ -87,10 +95,11 @@ class _SavingsPageState extends State<SavingsPage> {
         await SavingsApi.createGoal(nc.text.trim(), double.parse(ac.text));
         _load();
       } catch (_) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('创建失败，请重试')));
+        }
       }
     }
   }
@@ -142,10 +151,11 @@ class _SavingsPageState extends State<SavingsPage> {
           _histories.remove(goal['id']);
           _load();
         } catch (_) {
-          if (mounted)
+          if (mounted) {
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text('存入失败，请重试')));
+          }
         }
       }
     }
@@ -196,10 +206,11 @@ class _SavingsPageState extends State<SavingsPage> {
         );
         _load();
       } catch (_) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('编辑失败，请重试')));
+        }
       }
     }
   }
@@ -227,19 +238,24 @@ class _SavingsPageState extends State<SavingsPage> {
         await SavingsApi.deleteGoal(goal['id']);
         _load();
       } catch (_) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('删除失败，请重试')));
+        }
       }
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (_loading)
+  Widget build(BuildContext context) =>
+      AppThemedPage(builder: (context, _) => _buildPage(context));
+
+  Widget _buildPage(BuildContext context) {
+    if (_loading) {
       return Center(child: CircularProgressIndicator(color: AppColors.amber));
-    if (_goals.isEmpty)
+    }
+    if (_goals.isEmpty) {
       return Scaffold(
         backgroundColor: AppColors.bg,
         body: SafeArea(
@@ -272,6 +288,7 @@ class _SavingsPageState extends State<SavingsPage> {
           ),
         ),
       );
+    }
     return Scaffold(
       backgroundColor: AppColors.bg,
       floatingActionButton: Container(
@@ -299,248 +316,254 @@ class _SavingsPageState extends State<SavingsPage> {
           child: Icon(Icons.add),
         ),
       ),
-      body: ListView.builder(
-        padding: EdgeInsets.all(20),
-        itemCount: _goals.length,
-        itemBuilder: (_, i) {
-          final g = _goals[i];
-          final id = g['id'] as int;
-          final n = g['name'] ?? '';
-          final t = (g['target_amount'] as num?)?.toDouble() ?? 0;
-          final cur = (g['current_amount'] as num?)?.toDouble() ?? 0;
-          final pct = t > 0 ? (cur / t).clamp(0.0, 1.0) : 0.0;
-          final achieved = pct >= 1;
-          final isExpanded = _expanded[id] ?? false;
+      body: SafeArea(
+        key: const ValueKey('savings-page-safe-area'),
+        child: ListView.builder(
+          padding: EdgeInsets.all(20),
+          itemCount: _goals.length,
+          itemBuilder: (_, i) {
+            final g = _goals[i];
+            final id = g['id'] as int;
+            final n = g['name'] ?? '';
+            final t = (g['target_amount'] as num?)?.toDouble() ?? 0;
+            final cur = (g['current_amount'] as num?)?.toDouble() ?? 0;
+            final pct = t > 0 ? (cur / t).clamp(0.0, 1.0) : 0.0;
+            final achieved = pct >= 1;
+            final isExpanded = _expanded[id] ?? false;
 
-          return Padding(
-            padding: EdgeInsets.only(bottom: 14),
-            child: GestureDetector(
-              onLongPress: () => _showActions(g),
-              child: GlassCard(
-                padding: EdgeInsets.all(20),
-                gradient: achieved ? AppColors.cardSageTint : null,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          g['emoji'] ?? '💰',
-                          style: TextStyle(fontSize: 32),
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                n,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.ink,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                '¥${cur.toStringAsFixed(2)} / ¥${t.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: achieved
-                                      ? AppColors.sage
-                                      : AppColors.inkSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
+            return Padding(
+              padding: EdgeInsets.only(bottom: 14),
+              child: GestureDetector(
+                onLongPress: () => _showActions(g),
+                child: GlassCard(
+                  padding: EdgeInsets.all(20),
+                  gradient: achieved ? AppColors.cardSageTint : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            g['emoji'] ?? '💰',
+                            style: TextStyle(fontSize: 32),
                           ),
-                        ),
-                        if (achieved)
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.sage,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.emoji_events_rounded,
-                                  size: 14,
-                                  color: AppColors.card,
-                                ),
-                                SizedBox(width: 2),
                                 Text(
-                                  '已达成',
+                                  n,
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.card,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.w600,
+                                    color: AppColors.ink,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  '¥${cur.toStringAsFixed(2)} / ¥${t.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: achieved
+                                        ? AppColors.sage
+                                        : AppColors.inkSecondary,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                      ],
-                    ),
-                    SizedBox(height: 14),
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: pct),
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.easeOutCubic,
-                      builder: (_, v, __) => ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: LinearProgressIndicator(
-                          value: v,
-                          minHeight: 12,
-                          backgroundColor: AppColors.lightGray.withAlpha(80),
-                          valueColor: AlwaysStoppedAnimation(
-                            achieved ? AppColors.sage : AppColors.amber,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Text(
-                          '${(pct * 100).toStringAsFixed(0)}%',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: achieved ? AppColors.sage : AppColors.gray,
-                          ),
-                        ),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: () => _deposit(g),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.amber.withAlpha(30),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '存入',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.ink,
+                          if (achieved)
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
                               ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    // 展开历史
-                    if (isExpanded) ...[
-                      SizedBox(height: 12),
-                      Divider(),
-                      Builder(
-                        builder: (_) {
-                          final history = _histories[id] ?? [];
-                          if (history.isEmpty)
-                            return Padding(
-                              padding: EdgeInsets.only(top: 8),
-                              child: Text(
-                                '暂无存入记录',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.gray,
-                                ),
+                              decoration: BoxDecoration(
+                                color: AppColors.sage,
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            );
-                          return Column(
-                            children: history
-                                .take(5)
-                                .map<Widget>(
-                                  (h) => Padding(
-                                    padding: EdgeInsets.only(top: 8),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.add_circle,
-                                          size: 14,
-                                          color: AppColors.sage,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          '+¥${(h['amount'] as num).toDouble().toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.sage,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        if (h['note'] != null) ...[
-                                          SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              h['note']!,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.gray,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                        const Spacer(),
-                                        Text(
-                                          h['date'] ?? '',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.gray,
-                                          ),
-                                        ),
-                                      ],
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.emoji_events_rounded,
+                                    size: 14,
+                                    color: AppColors.card,
+                                  ),
+                                  SizedBox(width: 2),
+                                  Text(
+                                    '已达成',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.card,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                )
-                                .toList(),
-                          );
-                        },
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
-                    ],
-                    SizedBox(height: 4),
-                    GestureDetector(
-                      onTap: () {
-                        _loadHistory(id);
-                        setState(() => _expanded[id] = !isExpanded);
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            isExpanded ? '收起' : '查看存入记录',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.gray,
+                      SizedBox(height: 14),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: pct),
+                        duration: const Duration(milliseconds: 800),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, v, child) => ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: v,
+                            minHeight: 12,
+                            backgroundColor: AppColors.lightGray.withAlpha(80),
+                            valueColor: AlwaysStoppedAnimation(
+                              achieved ? AppColors.sage : AppColors.amber,
                             ),
                           ),
-                          Icon(
-                            isExpanded
-                                ? Icons.keyboard_arrow_up
-                                : Icons.keyboard_arrow_down,
-                            size: 14,
-                            color: AppColors.gray,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Text(
+                            '${(pct * 100).toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: achieved ? AppColors.sage : AppColors.gray,
+                            ),
+                          ),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () => _deposit(g),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.amber.withAlpha(30),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '存入',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.ink,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      // 展开历史
+                      if (isExpanded) ...[
+                        SizedBox(height: 12),
+                        Divider(),
+                        Builder(
+                          builder: (_) {
+                            final history = _histories[id] ?? [];
+                            if (history.isEmpty) {
+                              return Padding(
+                                padding: EdgeInsets.only(top: 8),
+                                child: Text(
+                                  '暂无存入记录',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.gray,
+                                  ),
+                                ),
+                              );
+                            }
+                            return Column(
+                              children: history
+                                  .take(5)
+                                  .map<Widget>(
+                                    (h) => Padding(
+                                      padding: EdgeInsets.only(top: 8),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.add_circle,
+                                            size: 14,
+                                            color: AppColors.sage,
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            '+¥${(h['amount'] as num).toDouble().toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.sage,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          if (h['note'] != null) ...[
+                                            SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                h['note']!,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors.gray,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                          const Spacer(),
+                                          Text(
+                                            formatSavingsDepositTime(
+                                              h['deposited_at']?.toString(),
+                                            ),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.gray,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            );
+                          },
+                        ),
+                      ],
+                      SizedBox(height: 4),
+                      GestureDetector(
+                        onTap: () {
+                          _loadHistory(id);
+                          setState(() => _expanded[id] = !isExpanded);
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              isExpanded ? '收起' : '查看存入记录',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.gray,
+                              ),
+                            ),
+                            Icon(
+                              isExpanded
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              size: 14,
+                              color: AppColors.gray,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db
@@ -9,6 +9,7 @@ from app.models.category import Category
 from app.models.user import User
 from app.schemas.record import RecordCreate, RecordUpdate, RecordOut
 from app.schemas.common import success, error
+from app.services.record_writer import create_record as create_idempotent_record
 
 router = APIRouter(prefix="/records", tags=["记账"])
 
@@ -49,6 +50,7 @@ def get_records(
 @router.post("")
 def create_record(
     data: RecordCreate,
+    idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -56,6 +58,14 @@ def create_record(
     cat = db.query(Category).filter(Category.id == data.category_id).first()
     if not cat:
         return error(400, "分类不存在")
+
+    if idempotency_key:
+        cached = create_idempotent_record(db, user.id, idempotency_key, {
+            "type": data.type, "amount": data.amount, "category_id": data.category_id,
+            "date": data.date, "note": data.note,
+        })
+        record = db.query(Record).options(joinedload(Record.category)).filter(Record.id == cached["record_id"]).first()
+        return success(data=_record_out(record))
 
     record = Record(
         user_id=user.id,
@@ -111,3 +121,14 @@ def delete_record(
     db.delete(record)
     db.commit()
     return success()
+
+
+@router.delete("")
+def delete_all_records(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """批量删除当前用户所有记录"""
+    count = db.query(Record).filter(Record.user_id == user.id).delete()
+    db.commit()
+    return success(data={"deleted": count})

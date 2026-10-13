@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'package:xiaojia_ledger/core/theme.dart';
+import 'brand_mark_geometry.dart';
 
 /// The small, open ring that anchors the Xiao Man visual language.
 ///
@@ -106,61 +107,92 @@ class _UnfinishedRingPainter extends CustomPainter {
     required this.trackColor,
   });
 
-  static const _startAngle = -math.pi / 2 + 0.18;
-  static const _gap = 0.72;
-
   @override
   void paint(Canvas canvas, Size size) {
     final shortest = math.min(size.width, size.height);
-    final center = Offset(size.width / 2, size.height / 2);
-    final stroke = shortest * 0.105;
-    final rect = Rect.fromCircle(center: center, radius: shortest * 0.34);
-    final sweep = (math.pi * 2) - _gap + (math.sin(progress * math.pi) * 0.08);
+    final center = Offset(
+      size.width * BrandMarkGeometry.center,
+      size.height * BrandMarkGeometry.center,
+    );
+    final stroke = shortest * BrandMarkGeometry.strokeWidth;
+    final rect = Rect.fromCircle(
+      center: center,
+      radius: shortest * BrandMarkGeometry.radius,
+    );
+    final sweep =
+        (math.pi * 2) -
+        BrandMarkGeometry.gap +
+        (math.sin(progress * math.pi) * BrandMarkGeometry.sweepAnimationDelta);
 
     final trackPaint = Paint()
       ..color = trackColor
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = stroke;
-    canvas.drawArc(rect, _startAngle, sweep, false, trackPaint);
+    canvas.drawArc(
+      rect,
+      BrandMarkGeometry.startAngle,
+      sweep,
+      false,
+      trackPaint,
+    );
 
     final ringPaint = Paint()
       ..color = ringColor
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = stroke;
-    canvas.drawArc(rect, _startAngle, sweep, false, ringPaint);
+    canvas.drawArc(rect, BrandMarkGeometry.startAngle, sweep, false, ringPaint);
 
-    final markerAngle = _startAngle + sweep * (0.55 + progress * 0.22);
+    final markerAngle =
+        BrandMarkGeometry.startAngle +
+        sweep *
+            (BrandMarkGeometry.markerProgress +
+                progress * BrandMarkGeometry.markerProgressDelta);
     final markerCenter = Offset(
       center.dx + math.cos(markerAngle) * rect.width / 2,
       center.dy + math.sin(markerAngle) * rect.height / 2,
     );
     final markerPaint = Paint()..color = markerColor;
-    canvas.drawCircle(markerCenter, shortest * 0.055, markerPaint);
+    canvas.drawCircle(
+      markerCenter,
+      shortest * BrandMarkGeometry.markerRadius,
+      markerPaint,
+    );
 
-    final gapAngle = _startAngle + sweep + 0.08;
+    final gapAngle =
+        BrandMarkGeometry.startAngle +
+        sweep +
+        BrandMarkGeometry.gapMarkerAngleOffset;
     final gapCenter = Offset(
       center.dx + math.cos(gapAngle) * rect.width / 2,
       center.dy + math.sin(gapAngle) * rect.height / 2,
     );
     final gapPaint = Paint()..color = markerColor.withAlpha(210);
-    canvas.drawCircle(gapCenter, shortest * 0.027, gapPaint);
+    canvas.drawCircle(
+      gapCenter,
+      shortest * BrandMarkGeometry.gapMarkerRadius,
+      gapPaint,
+    );
 
     final tickPaint = Paint()
       ..color = ringColor.withAlpha(105)
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = shortest * 0.025;
-    for (var i = 0; i < 3; i++) {
-      final tickAngle = _startAngle + sweep * (0.14 + i * 0.17);
+      ..strokeWidth = shortest * BrandMarkGeometry.tickStrokeWidth;
+    for (final tickProgress in BrandMarkGeometry.tickProgresses) {
+      final tickAngle = BrandMarkGeometry.startAngle + sweep * tickProgress;
       final outer = Offset(
-        center.dx + math.cos(tickAngle) * shortest * 0.47,
-        center.dy + math.sin(tickAngle) * shortest * 0.47,
+        center.dx +
+            math.cos(tickAngle) * shortest * BrandMarkGeometry.tickOuterRadius,
+        center.dy +
+            math.sin(tickAngle) * shortest * BrandMarkGeometry.tickOuterRadius,
       );
       final inner = Offset(
-        center.dx + math.cos(tickAngle) * shortest * 0.42,
-        center.dy + math.sin(tickAngle) * shortest * 0.42,
+        center.dx +
+            math.cos(tickAngle) * shortest * BrandMarkGeometry.tickInnerRadius,
+        center.dy +
+            math.sin(tickAngle) * shortest * BrandMarkGeometry.tickInnerRadius,
       );
       canvas.drawLine(inner, outer, tickPaint);
     }

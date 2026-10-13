@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.record import Record
 from app.models.deal import Deal
 from collections import defaultdict
+from app.services.stats_service import get_weekly_stats
 
 router = APIRouter(tags=["AI助手"])
 
@@ -18,89 +19,18 @@ router = APIRouter(tags=["AI助手"])
 # ============================================================
 @router.get("/ai/report/weekly", response_model=dict)
 def weekly_report(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """生成本周省钱报告"""
+    """Generate the same evidence-backed weekly report used by statistics."""
     today = datetime.now().date()
     start = today - timedelta(days=7)
     start_str = start.strftime("%Y-%m-%d")
     end_str = today.strftime("%Y-%m-%d")
 
-    records = (
-        db.query(Record)
-        .options(joinedload(Record.category))
-        .filter(Record.user_id == user.id, Record.date >= start_str, Record.date <= end_str)
-        .order_by(Record.date.desc())
-        .all()
-    )
-
-    if not records:
-        return {"code": 0, "data": {"has_data": False, "message": "本周还没有记账哦~"}}
-
-    # 按分类聚合
-    cat_totals = defaultdict(lambda: {"count": 0, "total": 0.0, "emoji": ""})
-    total_expense = 0.0
-    for r in records:
-        if r.type == "expense":
-            cn = r.category.name if r.category else "其他"
-            ce = r.category.emoji if r.category else ""
-            cat_totals[cn]["count"] += 1
-            cat_totals[cn]["total"] += r.amount
-            cat_totals[cn]["emoji"] = ce
-            total_expense += r.amount
-
-    if total_expense == 0:
-        return {"code": 0, "data": {"has_data": False, "message": "本周只有收入没有支出，太棒啦！"}}
-
-    # 排序取 Top 3 消费分类
-    top_cats = sorted(cat_totals.items(), key=lambda x: x[1]["total"], reverse=True)[:3]
-    suggestions = _generate_suggestions(top_cats)
-
-    return {
-        "code": 0,
-        "data": {
-            "has_data": True,
-            "period": f"{start_str} - {end_str}",
-            "total_expense": total_expense,
-            "top_categories": [{"name": k, "count": v["count"], "total": v["total"], "emoji": v["emoji"]} for k, v in top_cats],
-            "suggestions": suggestions,
-        }
-    }
-
-
-def _generate_suggestions(top_cats):
-    """用模板生成小满语气的建议"""
-    suggestions = []
-    templates = {
-        "奶茶": "如果你每周少喝 2 杯，一个月就能省 ¥60 哦～攒下来可以买一个小满手办！🎁",
-        "外卖": "外卖虽然方便，但自己做饭更省钱哦～试试每周自己做 2 顿饭？",
-        "游戏": "游戏充值要适度哦～小满提醒你把游戏预算控制在 ¥100 以内！",
-        "饮料": "少喝饮料多喝水，省钱又健康！💪",
-        "零食": "零食虽好吃，但吃多了对身体不好哦～",
-        "交通": "短距离可以走路或骑车，既省钱又锻炼身体！",
-        "购物": "买买买之前先问自己：我真的需要吗？",
-        "娱乐": "快乐很重要，但要量力而行哦～",
-    }
-    for cat_name, data in top_cats:
-        for keyword, msg in templates.items():
-            if keyword in cat_name:
-                suggestions.append({
-                    "category": cat_name,
-                    "emoji": data["emoji"],
-                    "total": data["total"],
-                    "count": data["count"],
-                    "message": msg,
-                    "potential_save": round(data["total"] * 0.3, 0),
-                })
-                break
-        else:
-            suggestions.append({
-                "category": cat_name,
-                "emoji": data["emoji"],
-                "total": data["total"],
-                "count": data["count"],
-                "message": f"小满发现你在'{cat_name}'上花了 ¥{data['total']:.0f}，看看能不能减少一点呢～",
-                "potential_save": round(data["total"] * 0.2, 0),
-            })
-    return suggestions[:3]
+    data = get_weekly_stats(db, user.id, start_str, end_str)
+    data["has_data"] = data["total_expense"] > 0
+    data["period"] = f"{start_str} - {end_str}"
+    if not data["has_data"]:
+        data["message"] = "本周还没有支出记录"
+    return {"code": 0, "data": data}
 
 
 # ============================================================

@@ -1,31 +1,67 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/api/api_client.dart';
-import '../data/api/record_api.dart';
+import '../data/api/wallet_api.dart';
 import 'notification_models.dart';
 import 'notification_policy.dart';
 import 'notification_preferences.dart';
 import 'notifications.dart';
 import 'constants.dart';
+import 'notifications/notification_migrator.dart';
+import 'notifications/notification_audit.dart';
+import 'notifications/platform_scheduler.dart';
+import 'notifications/schedule_plan.dart';
+import 'notifications/notification_rule.dart';
+import 'notifications/threshold_delivery.dart';
 
 /// Coordinates notification product rules without putting them in widgets.
 class NotificationCoordinator {
   static NotificationCoordinator? _shared;
+  static Future<NotificationCoordinator>? _creating;
 
   final NotificationPreferencesRepository preferences;
   final DateTime Function() now;
   NotificationPreferences _settings;
-  bool _busy = false;
-  bool _reconcileQueued = false;
+  Future<void> _reconcileTail = Future<void>.value();
+  final NotificationAuditStore dailyAudit = NotificationAuditStore();
+  late final BudgetAlertDelivery _budgetDelivery = BudgetAlertDelivery(
+    repository: preferences,
+    send: (id, threshold) =>
+        NotificationService.showBudgetAlert(budgetId: id, threshold: threshold),
+  );
 
   NotificationCoordinator._(this.preferences, this._settings, this.now);
 
-  static Future<NotificationCoordinator> shared() async {
-    if (_shared != null) return _shared!;
-    final repo = await NotificationPreferencesRepository.create();
-    _shared = NotificationCoordinator._(repo, repo.load(), DateTime.now);
-    return _shared!;
+  static Future<NotificationCoordinator> shared() =>
+      _creating ??= _createShared();
+
+  static Future<NotificationCoordinator> _createShared() async {
+    try {
+      final repo = await NotificationPreferencesRepository.create();
+      _shared = NotificationCoordinator._(repo, repo.load(), DateTime.now);
+      await _shared!._migrateLegacyRules();
+      return _shared!;
+    } catch (_) {
+      _creating = null;
+      rethrow;
+    }
+  }
+
+  Future<bool> _migrateLegacyRules() async {
+    final migrator = NotificationMigrator(
+      // The repository has already loaded the same SharedPreferences instance.
+      await SharedPreferences.getInstance(),
+      _CoordinatorMigrationScheduler(),
+    );
+    try {
+      return await migrator.run();
+    } catch (error) {
+      // Keep the migration marker absent so a later reconciliation retries.
+      debugPrint('Legacy notification migration pending: ${error.runtimeType}');
+      return false;
+    }
   }
 
   NotificationPreferences get settings => _settings;
@@ -33,10 +69,9 @@ class NotificationCoordinator {
   Future<bool> update(NotificationPreferences value) async {
     final permission = await NotificationService.isPermissionGranted();
     if (!_hasNewlyEnabledFeature(value) || permission) {
-      _settings = value;
       await preferences.save(value);
-      await reconcileAll();
-      return true;
+      _settings = preferences.load();
+      return await reconcileAll();
     }
     return false;
   }
@@ -46,70 +81,93 @@ class NotificationCoordinator {
         !await NotificationService.isPermissionGranted()) {
       if (!await NotificationService.requestPermission()) return false;
     }
-    _settings = value;
     await preferences.save(value);
-    await reconcileAll();
-    return true;
+    _settings = preferences.load();
+    return await reconcileAll();
   }
 
-  Future<void> reconcileAll() async {
-    if (_busy) {
-      _reconcileQueued = true;
-      return;
-    }
-    _busy = true;
+  Future<bool> reconcileAll() {
+    final run = _reconcileTail.then((_) => _reconcileOnce());
+    _reconcileTail = run.then<void>((_) {});
+    return run;
+  }
+
+  Future<bool> _reconcileOnce() async {
     try {
       await NotificationService.init();
-      if (!await NotificationService.isPermissionGranted()) {
-        await NotificationService.cancelDailyWindow();
-        await NotificationService.cancelWeekly();
-        await NotificationService.cancelMonthly();
-        await _reconcileDeals(disabled: true);
-        return;
+      final permission = await NotificationService.isPermissionGranted();
+      var success = await _migrateLegacyRules();
+      Future<void> attempt(Future<void> Function() operation) async {
+        try {
+          await operation();
+        } catch (error) {
+          success = false;
+          debugPrint('Notification rule failed: ${error.runtimeType}');
+        }
       }
-      if (_settings.dailyEnabled) {
-        final dates = NotificationPolicy.dailyOccurrences(
-          now: now(),
-          hour: _settings.dailyHour,
-          minute: _settings.dailyMinute,
-        );
-        await NotificationService.scheduleDailyWindow(
-          dates,
-          hour: _settings.dailyHour,
-          minute: _settings.dailyMinute,
-        );
+
+      if (!permission) {
+        await attempt(NotificationService.cancelDailyWindow);
+        if (!await _auditDaily(permission)) success = false;
+        await attempt(NotificationService.cancelWeekly);
+        await attempt(NotificationService.cancelMonthly);
+        await attempt(() => _reconcileDeals(disabled: true));
       } else {
-        await NotificationService.cancelDailyWindow();
+        if (!await _auditDaily(permission)) success = false;
+        await attempt(() async {
+          if (_settings.weeklyEnabled) {
+            await NotificationService.scheduleWeekly(
+              weekday: _settings.weeklyWeekday,
+              hour: _settings.weeklyHour,
+              minute: _settings.weeklyMinute,
+            );
+          } else {
+            await NotificationService.cancelWeekly();
+          }
+        });
+        await attempt(() async {
+          if (_settings.monthlyEnabled) {
+            await NotificationService.scheduleMonthly(
+              day: _settings.monthlyDay,
+              hour: _settings.monthlyHour,
+              minute: _settings.monthlyMinute,
+            );
+          } else {
+            await NotificationService.cancelMonthly();
+          }
+        });
+        await attempt(() => _reconcileDeals());
+        if (_settings.budgetEnabled) await attempt(evaluateBudgets);
       }
-      if (_settings.weeklyEnabled) {
-        await NotificationService.scheduleWeekly(
-          weekday: _settings.weeklyWeekday,
-          hour: _settings.weeklyHour,
-          minute: _settings.weeklyMinute,
-        );
-      } else {
-        await NotificationService.cancelWeekly();
-      }
-      if (_settings.monthlyEnabled) {
-        await NotificationService.scheduleMonthly(
-          day: _settings.monthlyDay,
-          hour: _settings.monthlyHour,
-          minute: _settings.monthlyMinute,
-        );
-      } else {
-        await NotificationService.cancelMonthly();
-      }
-      await _reconcileDeals();
-      if (_settings.budgetEnabled) await evaluateBudgets();
-    } catch (_) {
-      // A single unavailable API or platform operation must not crash startup.
-    } finally {
-      _busy = false;
-      if (_reconcileQueued) {
-        _reconcileQueued = false;
-        await reconcileAll();
-      }
+      return success;
+    } catch (error) {
+      debugPrint('Notification reconciliation failed: $error');
+      return false;
     }
+  }
+
+  Future<bool> _auditDaily(bool permission) async {
+    final rule = NotificationRule(
+      id: 'daily',
+      enabled: _settings.dailyEnabled,
+      time: TimeOfDay(hour: _settings.dailyHour, minute: _settings.dailyMinute),
+      kind: NotificationRuleKind.daily,
+    );
+    final plan = const NotificationPlanner().plan(
+      rule: rule,
+      now: now(),
+      notificationsAllowed: permission,
+      // The app intentionally uses the battery-friendly inexact Android mode.
+      exactAlarmAllowed: false,
+      skipToday: preferences.hasRecordedOn(now()),
+    );
+    final audit = await PlatformScheduler(
+      dailyAudit,
+    ).apply(rule: rule, plan: plan);
+    return audit.state == AuditState.scheduled ||
+        audit.state == AuditState.degraded ||
+        audit.state == AuditState.disabled ||
+        audit.state == AuditState.blocked;
   }
 
   Future<void> onRecordSaved({
@@ -119,70 +177,33 @@ class NotificationCoordinator {
     if (date.year == now().year &&
         date.month == now().month &&
         date.day == now().day) {
-      await NotificationService.cancelDailyWindow();
-      if (_settings.dailyEnabled) {
-        final today = DateTime(date.year, date.month, date.day);
-        final future = NotificationPolicy.dailyOccurrences(
-          now: now(),
-          hour: _settings.dailyHour,
-          minute: _settings.dailyMinute,
-        ).where((scheduled) => !_sameDate(scheduled, today)).toList();
-        await NotificationService.scheduleDailyWindow(
-          future,
-          hour: _settings.dailyHour,
-          minute: _settings.dailyMinute,
-        );
-      }
+      await preferences.markRecordedOn(date);
     }
-    if (type == 'expense' && _settings.budgetEnabled) await evaluateBudgets();
+    // Share the serialized scheduling path with foreground refresh/settings.
+    await reconcileAll();
   }
 
   Future<void> evaluateBudgets() async {
-    if (!await NotificationService.isPermissionGranted()) return;
-    final prefs = await SharedPreferences.getInstance();
-    final active = prefs.getStringList('active_wallets') ?? <String>[];
-    if (active.isEmpty) return;
+    if (!_settings.budgetEnabled ||
+        !await NotificationService.isPermissionGranted()) {
+      return;
+    }
     final monthDate = now();
-    final month =
-        '${monthDate.year}-${monthDate.month.toString().padLeft(2, '0')}';
-    final records = await RecordApi.getRecords(month: month);
-    if (!records.isSuccess || records.data == null) return;
-    final spent = <String, double>{};
-    for (final record in records.data!) {
-      if (!record.isIncome) {
-        final id = '${record.categoryId}';
-        spent[id] = (spent[id] ?? 0) + record.amount;
-      }
-    }
-    final dedupe = preferences.thresholdKeys();
-    for (final id in active) {
-      final limit = prefs.getDouble('wallet_budget_$id') ?? 0;
-      if (limit <= 0) continue;
-      final current = spent[id] ?? 0;
-      final previous = preferences.previousBudgetSpent(month, id);
-      final crossed = NotificationPolicy.crossedBudgetThresholds(
-        previousSpent: previous,
-        currentSpent: current,
-        limit: limit,
-      );
-      for (final threshold in crossed) {
-        final key = NotificationPolicy.budgetDedupeKey(
-          budgetId: id,
-          month: monthDate,
-          threshold: threshold,
-        );
-        if (dedupe.contains(key)) continue;
-        try {
-          await NotificationService.showBudgetAlert(
-            budgetId: id,
-            threshold: threshold,
-          );
-          dedupe.add(key);
-        } catch (_) {}
-      }
-      await preferences.saveBudgetSpent(month, id, current);
-    }
-    await preferences.saveThresholdKeys(dedupe);
+    final remote = await WalletApi.getWallets();
+    // Missing current data is not an empty wallet and must not revive legacy
+    // category budgets. Leave receipts unchanged and retry on the next refresh.
+    if (remote == null || !_settings.budgetEnabled) return;
+    final snapshots = remote
+        .map(
+          (wallet) => BudgetSnapshot(
+            id: 'wallet:${wallet.id}',
+            label: wallet.name,
+            spent: wallet.spent,
+            limit: wallet.amount,
+          ),
+        )
+        .toList();
+    await _budgetDelivery.evaluate(snapshots, monthDate);
   }
 
   Future<void> _reconcileDeals({bool disabled = false}) async {
@@ -207,20 +228,39 @@ class NotificationCoordinator {
       return;
     }
     final future = NotificationPolicy.futureDeals(deals, now());
-    final currentIds = future.map((deal) => deal.id).toSet();
+    final pendingDeals = future
+        .where(
+          (deal) => DateTime(
+            deal.remindDate.year,
+            deal.remindDate.month,
+            deal.remindDate.day,
+            _settings.dealsHour,
+            _settings.dealsMinute,
+          ).isAfter(now()),
+        )
+        .toList();
+    final currentIds = pendingDeals.map((deal) => deal.id).toSet();
     for (final id in scheduled.difference(currentIds)) {
       await NotificationService.cancelDealId(id);
     }
-    for (final deal in future) {
+    final registered = <int>{};
+    final pendingIds = await NotificationService.pendingRequestIds();
+    for (final deal in pendingDeals) {
       try {
         await NotificationService.scheduleDeal(
           deal,
           hour: _settings.dealsHour,
           minute: _settings.dealsMinute,
         );
-      } catch (_) {}
+        registered.add(deal.id);
+      } catch (_) {
+        // Retain older registrations so disabling can still cancel them.
+        if (pendingIds.contains(NotificationPolicy.dealId(deal.id))) {
+          registered.add(deal.id);
+        }
+      }
     }
-    await preferences.saveScheduledDealIds(currentIds);
+    await preferences.saveScheduledDealIds(registered);
   }
 
   static DealReminder? _dealFromJson(dynamic raw) {
@@ -250,10 +290,26 @@ class NotificationCoordinator {
   bool _hasNewlyEnabledFeature(NotificationPreferences value) =>
       (value.dailyEnabled && !_settings.dailyEnabled) ||
       (value.budgetEnabled && !_settings.budgetEnabled) ||
+      (value.livingEnabled && !_settings.livingEnabled) ||
       (value.weeklyEnabled && !_settings.weeklyEnabled) ||
       (value.monthlyEnabled && !_settings.monthlyEnabled) ||
       (value.dealsEnabled && !_settings.dealsEnabled);
+}
 
-  static bool _sameDate(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
+class _CoordinatorMigrationScheduler implements NotificationMigrationScheduler {
+  @override
+  Future<AuditState> schedule(NotificationMigrationRule rule) async {
+    try {
+      await NotificationService.scheduleDailyReminder(
+        hour: rule.rule.time.hour,
+        minute: rule.rule.time.minute,
+      );
+      return AuditState.scheduled;
+    } catch (_) {
+      return AuditState.failed;
+    }
+  }
+
+  @override
+  Future<void> cancelLegacy() => NotificationService.cancelLegacyDailyIds();
 }

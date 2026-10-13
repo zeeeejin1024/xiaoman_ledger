@@ -20,7 +20,10 @@ class AppIconGenerator {
     for (final entry in sizes.entries) {
       final size = entry.value;
       final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
+      final canvas = Canvas(
+        recorder,
+        Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
+      );
 
       _drawIcon(canvas, size);
 
@@ -33,7 +36,9 @@ class AppIconGenerator {
       await file.writeAsBytes(bytes);
 
       // 同时保存到 Android 项目目录
-      final androidDir = Directory('D:\\my_thoughts\\xiaojia_ledger\\frontend\\android\\app\\src\\main\\res\\${entry.key}');
+      final androidDir = Directory(
+        'D:\\my_thoughts\\xiaojia_ledger\\frontend\\android\\app\\src\\main\\res\\${entry.key}',
+      );
       if (await androidDir.exists()) {
         await file.copy('${androidDir.path}/ic_launcher.png');
       }
@@ -57,7 +62,12 @@ class AppIconGenerator {
 
     // 绘制圆角矩形背景
     final bgRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(10 * scale, 10 * scale, size - 20 * scale, size - 20 * scale),
+      Rect.fromLTWH(
+        10 * scale,
+        10 * scale,
+        size - 20 * scale,
+        size - 20 * scale,
+      ),
       Radius.circular(radius),
     );
     canvas.drawRRect(bgRect, bgPaint);

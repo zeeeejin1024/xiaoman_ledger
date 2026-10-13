@@ -3,16 +3,20 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart' as permissions;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'notification_models.dart';
 import 'notification_policy.dart';
+import 'notification_preferences.dart';
 
 /// Platform adapter for local notifications.
 /// Product rules live in NotificationCoordinator.
 class NotificationService {
   static const androidSmallIcon = 'ic_notification';
+  static const _legacyDailyCleanupKey =
+      'notification.legacy_daily_window_cleaned_v581';
 
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
@@ -114,13 +118,47 @@ class NotificationService {
     }
   }
 
-  static Future<int> pendingCount() async {
+  static Future<NotificationQueueState> pendingState() async {
     await init();
     try {
-      return (await _plugin.pendingNotificationRequests()).length;
+      return NotificationQueueState.ready(
+        (await _plugin.pendingNotificationRequests()).length,
+      );
     } catch (_) {
-      return 0;
+      return NotificationQueueState.unavailable;
     }
+  }
+
+  static Future<int> pendingCount() async {
+    final state = await pendingState();
+    if (!state.isAvailable) {
+      throw StateError('Unable to query pending notifications');
+    }
+    return state.count!;
+  }
+
+  static Future<Set<int>> pendingRequestIds() async {
+    await init();
+    final requests = await _plugin.pendingNotificationRequests();
+    return requests.map((request) => request.id).toSet();
+  }
+
+  static Future<void> scheduleDailyReminder({
+    required int hour,
+    required int minute,
+    bool skipToday = false,
+  }) async {
+    await init();
+    final now = DateTime.now();
+    final preferences = await NotificationPreferencesRepository.create();
+    final dates = NotificationPolicy.dailyOccurrences(
+      now: now,
+      hour: hour,
+      minute: minute,
+      days: NotificationPolicy.dailyWindowDays,
+      skipToday: skipToday || preferences.hasRecordedOn(now),
+    );
+    await scheduleDailyWindow(dates, hour: hour, minute: minute);
   }
 
   static Future<void> scheduleDailyWindow(
@@ -128,11 +166,13 @@ class NotificationService {
     required int hour,
     required int minute,
   }) async {
+    if (dates.length > NotificationPolicy.dailyWindowDays) {
+      throw ArgumentError('Daily window exceeds the supported limit');
+    }
     await init();
-    await cancelDailyWindow();
-    for (final date in dates) {
+    for (final (index, date) in dates.indexed) {
       await _schedule(
-        NotificationPolicy.dailyIdForDate(date),
+        NotificationPolicy.dailyReminderId + index,
         '记账提醒',
         '今天还没有记账哦，记一笔就安心啦～',
         date,
@@ -145,6 +185,21 @@ class NotificationService {
         ).encode(),
       );
     }
+    final pending = await pendingRequestIds();
+    if (!pending.containsAll(
+      List.generate(
+        dates.length,
+        (index) => NotificationPolicy.dailyReminderId + index,
+      ),
+    )) {
+      throw StateError('Daily reminder window was not registered');
+    }
+    // Replace stable IDs in place. Do not erase working reminders before the
+    // platform has accepted the replacement window.
+    for (final id in NotificationPolicy.dailyWindowIds.skip(dates.length)) {
+      await _plugin.cancel(id);
+    }
+    await cancelLegacyDailyIds();
   }
 
   static Future<void> scheduleWeekly({
@@ -157,7 +212,7 @@ class NotificationService {
     await _schedule(
       NotificationPolicy.weeklyReportId,
       '省钱周报',
-      '本周的省钱报告已生成，点击查看～',
+      '到复盘本周收支的时间了，打开查看省钱周报。',
       NotificationPolicy.nextWeeklyOccurrence(
         now: DateTime.now(),
         weekday: weekday,
@@ -172,6 +227,7 @@ class NotificationService {
         route: 'weekly_report',
       ).encode(),
     );
+    await _confirmPending(NotificationPolicy.weeklyReportId);
   }
 
   static Future<void> scheduleMonthly({
@@ -184,7 +240,7 @@ class NotificationService {
     await _schedule(
       NotificationPolicy.monthlyReportId,
       '月度报告',
-      '上月的理财报告已生成，来看看你的表现吧～',
+      '回顾上月收支，打开查看月度报告。',
       NotificationPolicy.nextMonthlyOccurrence(
         now: DateTime.now(),
         day: day,
@@ -199,6 +255,7 @@ class NotificationService {
         route: 'monthly_report',
       ).encode(),
     );
+    await _confirmPending(NotificationPolicy.monthlyReportId);
   }
 
   static Future<void> scheduleDeal(
@@ -214,6 +271,10 @@ class NotificationService {
       hour,
       minute,
     );
+    if (!date.isAfter(DateTime.now())) {
+      await cancelDealId(deal.id);
+      return;
+    }
     await _schedule(
       NotificationPolicy.dealId(deal.id),
       '优惠提醒',
@@ -227,6 +288,7 @@ class NotificationService {
         entityId: deal.id,
       ).encode(),
     );
+    await _confirmPending(NotificationPolicy.dealId(deal.id));
   }
 
   static Future<void> showBudgetAlert({
@@ -260,15 +322,55 @@ class NotificationService {
     );
   }
 
+  static Future<void> showLivingAllowanceAlert({
+    required int threshold,
+    required double remaining,
+  }) async {
+    await init();
+    final body = threshold >= 100
+        ? '本期生活费已经用完，建议检查是否有漏记或调整接下来的安排。'
+        : '本期生活费已使用 $threshold%，还剩 ¥${remaining.toStringAsFixed(2)}。';
+    await _plugin.show(
+      NotificationPolicy.budgetId('living:$threshold'),
+      '生活费提醒',
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'living_allowance_alert',
+          '生活费提醒',
+          channelDescription: '生活费使用进度和阈值提醒',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: const NotificationPayload(
+        type: 'budget',
+        route: 'home',
+      ).encode(),
+    );
+  }
+
   static Future<void> cancelDailyWindow() async {
     await init();
-    for (
-      var id = NotificationPolicy.dailyBaseId;
-      id <= NotificationPolicy.dailyBaseId + 89;
-      id++
-    ) {
+    for (final id in NotificationPolicy.dailyWindowIds) {
       await _plugin.cancel(id);
     }
+    await cancelLegacyDailyIds();
+  }
+
+  static Future<void> cancelLegacyDailyIds() async {
+    await init();
+    final preferences = await SharedPreferences.getInstance();
+    if (preferences.getBool(_legacyDailyCleanupKey) == true) return;
+    for (final id in NotificationPolicy.legacyDailyIds) {
+      await _plugin.cancel(id);
+    }
+    await preferences.setBool(_legacyDailyCleanupKey, true);
   }
 
   static Future<void> cancelWeekly() async {
@@ -299,12 +401,12 @@ class NotificationService {
       scheduleMonthly(day: 1, hour: 9, minute: 0);
 
   static Future<bool> scheduleReminder(int hour, int minute) async {
-    await scheduleDailyWindow(
-      [_nextDaily(hour, minute)],
-      hour: hour,
-      minute: minute,
-    );
-    return true;
+    try {
+      await scheduleDailyReminder(hour: hour, minute: minute);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   static Future<void> cancelReminder() => cancelDailyWindow();
@@ -350,6 +452,7 @@ class NotificationService {
           route: 'home',
         ).encode(),
       );
+      await _confirmPending(NotificationPolicy.testScheduledId);
       return true;
     } catch (_) {
       return false;
@@ -399,17 +502,9 @@ class NotificationService {
     );
   }
 
-  static tz.TZDateTime _nextDaily(int hour, int minute) {
-    final now = tz.TZDateTime.now(tz.local);
-    var next = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      hour,
-      minute,
-    );
-    if (!next.isAfter(now)) next = next.add(const Duration(days: 1));
-    return next;
+  static Future<void> _confirmPending(int id) async {
+    if (!(await pendingRequestIds()).contains(id)) {
+      throw StateError('Notification $id was not registered');
+    }
   }
 }

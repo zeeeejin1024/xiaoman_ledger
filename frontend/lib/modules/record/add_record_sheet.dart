@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiaojia_ledger/core/theme.dart';
-import 'package:xiaojia_ledger/core/notification_coordinator.dart';
+import 'package:xiaojia_ledger/core/living_allowance_repository.dart';
 import 'package:xiaojia_ledger/data/api/category_api.dart';
 import 'package:xiaojia_ledger/data/api/record_api.dart';
 import 'package:xiaojia_ledger/data/api/api_client.dart';
 import 'package:xiaojia_ledger/data/models/category.dart';
 import 'package:xiaojia_ledger/modules/savings/savings_page.dart';
 import 'package:xiaojia_ledger/widgets/particle_effect.dart';
+import 'package:uuid/uuid.dart';
 
 class AddRecordSheet extends StatefulWidget {
   final VoidCallback? onSaved;
@@ -29,7 +30,10 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
   List<Category> _recentCats = [];
   int? _expandedId;
   bool _load = true, _saving = false;
+  bool _includeIncomeInLivingAllowance = false;
   Timer? _debounce;
+  String? _requestId;
+  String? _requestFingerprint;
 
   @override
   void initState() {
@@ -91,6 +95,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     final a = double.tryParse(_amt.text);
     if (a == null || a <= 0) {
       ScaffoldMessenger.of(
@@ -105,27 +110,67 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
       return;
     }
     setState(() => _saving = true);
-    final r = await RecordApi.addRecord(
-      type: _type,
-      amount: a,
-      categoryId: _cat!.id,
-      date: _date.toIso8601String().split('T')[0],
-      note: _note.text.isNotEmpty ? _note.text : null,
-    );
-    if (mounted) {
-      setState(() => _saving = false);
-      if (r.isSuccess) {
-        HapticFeedback.mediumImpact();
-        _saveRecentCat(_cat!);
-        final coordinator = await NotificationCoordinator.shared();
-        await coordinator.onRecordSaved(date: _date, type: _type);
-        widget.onSaved?.call();
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(r.message)));
+    final fingerprint =
+        '$_type|$a|${_cat!.id}|${_date.toIso8601String()}|${_note.text}';
+    if (_requestFingerprint != fingerprint) {
+      _requestFingerprint = fingerprint;
+      _requestId = const Uuid().v4();
+    }
+    var recordSaved = false;
+    try {
+      final r = await RecordApi.addRecord(
+        type: _type,
+        amount: a,
+        categoryId: _cat!.id,
+        date: _date.toIso8601String().split('T')[0],
+        note: _note.text.isNotEmpty ? _note.text : null,
+        requestId: _requestId,
+      );
+      if (!r.isSuccess) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(r.message)));
+        }
+        return;
       }
+      recordSaved = true;
+      try {
+        if (_type == 'income' &&
+            _includeIncomeInLivingAllowance &&
+            r.data != null) {
+          final preferences = await SharedPreferences.getInstance();
+          await LivingAllowanceRepository(
+            preferences,
+          ).includeIncomeRecord(r.data!.id);
+        }
+        await _saveRecentCat(_cat!);
+      } catch (error) {
+        debugPrint(
+          'Record saved, local preferences failed: ${error.runtimeType}',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('账单已保存，但本地附加设置未保存，请稍后检查生活费设置')),
+          );
+        }
+      }
+      // RecordApi refreshes notifications independently of this sheet.
+      if (mounted) {
+        HapticFeedback.mediumImpact();
+        Navigator.pop(context);
+        widget.onSaved?.call();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(recordSaved ? '账单已保存，请刷新查看' : '保存失败，请检查网络后重试'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted && !recordSaved) setState(() => _saving = false);
     }
   }
 
@@ -365,6 +410,17 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                     Expanded(child: _noteField()),
                   ],
                 ),
+                if (_type == 'income')
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    title: const Text('计入本月生活费'),
+                    subtitle: const Text('作为本期生活费的补充收入'),
+                    value: _includeIncomeInLivingAllowance,
+                    onChanged: (value) => setState(
+                      () => _includeIncomeInLivingAllowance = value ?? false,
+                    ),
+                  ),
                 SizedBox(height: 18),
                 // 渐变保存按钮 + 粒子特效
                 ParticleEffect(
@@ -503,7 +559,10 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
         GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
-            setState(() => _expandedId = isExpanded ? null : parent.id);
+            setState(() {
+              _cat = parent;
+              _expandedId = null;
+            });
           },
           onLongPress: parent.isSystem ? null : () => _deleteCategory(parent),
           child: Container(
@@ -529,12 +588,22 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                     ),
                   ),
                 ),
-                Icon(
-                  isExpanded
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.gray,
-                  size: 22,
+                GestureDetector(
+                  key: ValueKey('category-expand-${parent.id}'),
+                  onTap: children.isEmpty
+                      ? null
+                      : () => setState(
+                          () => _expandedId = isExpanded ? null : parent.id,
+                        ),
+                  child: Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: children.isEmpty
+                        ? AppColors.gray.withAlpha(80)
+                        : AppColors.gray,
+                    size: 22,
+                  ),
                 ),
               ],
             ),

@@ -1,15 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiaojia_ledger/core/constants.dart';
 import 'package:xiaojia_ledger/core/router.dart';
 import 'package:xiaojia_ledger/core/theme.dart';
-import 'package:xiaojia_ledger/core/notifications.dart';
 import 'package:xiaojia_ledger/core/notification_coordinator.dart';
 import 'package:xiaojia_ledger/widgets/unfinished_ring_mark.dart';
 
 class SplashPage extends StatefulWidget {
-  const SplashPage({super.key});
+  final Future<void> Function()? prepareNotifications;
+
+  const SplashPage({super.key, this.prepareNotifications});
   @override
   State<SplashPage> createState() => _SplashPageState();
 }
@@ -34,7 +36,7 @@ class _SplashPageState extends State<SplashPage>
       if (!mounted) return;
 
       if (token != null && token.isNotEmpty) {
-        await _requestNotificationPermission();
+        unawaited(_prepareNotifications());
         final lastAuth = p.getString('last_auth_check');
         final now = DateTime.now();
         bool needConfirm = true;
@@ -83,24 +85,25 @@ class _SplashPageState extends State<SplashPage>
     });
   }
 
+  Future<void> _prepareNotifications() async {
+    try {
+      if (widget.prepareNotifications != null) {
+        await widget.prepareNotifications!();
+      } else {
+        final coordinator = await NotificationCoordinator.shared();
+        await coordinator.reconcileAll();
+      }
+    } catch (error) {
+      debugPrint(
+        'Startup notification preparation failed: ${error.runtimeType}',
+      );
+    }
+  }
+
   @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _requestNotificationPermission() async {
-    try {
-      final p = await SharedPreferences.getInstance();
-      final hasRequested =
-          p.getBool('notification_permission_requested') ?? false;
-      if (!hasRequested) {
-        await NotificationService.requestPermission();
-        await p.setBool('notification_permission_requested', true);
-      }
-      final coordinator = await NotificationCoordinator.shared();
-      await coordinator.reconcileAll();
-    } catch (_) {}
   }
 
   static const _title = '小满记账';

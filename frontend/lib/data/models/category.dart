@@ -1,5 +1,6 @@
 class Category {
   final int id;
+  final int? parentId;
   final String name;
   final String type;
   final String? emoji;
@@ -8,6 +9,7 @@ class Category {
 
   Category({
     required this.id,
+    this.parentId,
     required this.name,
     required this.type,
     this.emoji,
@@ -18,11 +20,13 @@ class Category {
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
       id: json['id'],
+      parentId: json['parent_id'],
       name: json['name'],
       type: json['type'],
       emoji: json['emoji'],
       isSystem: json['is_system'] ?? true,
-      children: (json['children'] as List<dynamic>?)
+      children:
+          (json['children'] as List<dynamic>?)
               ?.map((c) => Category.fromJson(c))
               .toList() ??
           [],

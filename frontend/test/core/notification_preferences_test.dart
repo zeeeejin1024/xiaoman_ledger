@@ -16,6 +16,7 @@ void main() {
     expect(value.dailyHour, 21);
     expect(value.weeklyEnabled, isTrue);
     expect(value.monthlyEnabled, isTrue);
+    expect(value.livingEnabled, isTrue);
   });
 
   test('migrates the legacy daily reminder keys', () async {

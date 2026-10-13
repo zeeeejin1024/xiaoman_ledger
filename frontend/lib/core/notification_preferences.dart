@@ -11,6 +11,18 @@ class NotificationPreferencesRepository {
 
   NotificationPreferencesRepository(this._prefs);
 
+  bool hasRecordedOn(DateTime date) =>
+      _prefs.getString('${_prefix}last_recorded_date') == _date(date);
+
+  Future<void> markRecordedOn(DateTime date) async {
+    if (!await _prefs.setString('${_prefix}last_recorded_date', _date(date))) {
+      throw StateError('Unable to persist recorded date');
+    }
+  }
+
+  static String _date(DateTime value) =>
+      '${value.year}-${value.month}-${value.day}';
+
   static Future<NotificationPreferencesRepository> create() async {
     return NotificationPreferencesRepository(
       await SharedPreferences.getInstance(),
@@ -32,6 +44,7 @@ class NotificationPreferencesRepository {
         _prefs.getInt('${_prefix}daily_minute') ?? parsedOldTime.minute,
       ),
       budgetEnabled: _prefs.getBool('${_prefix}budget_enabled') ?? false,
+      livingEnabled: _prefs.getBool('${_prefix}living_enabled') ?? true,
       weeklyEnabled: _prefs.getBool('${_prefix}weekly_enabled') ?? true,
       weeklyWeekday: _validWeekday(
         _prefs.getInt('${_prefix}weekly_weekday') ?? DateTime.monday,
@@ -64,12 +77,13 @@ class NotificationPreferencesRepository {
       dealsHour: _validHour(value.dealsHour),
       dealsMinute: _validMinute(value.dealsMinute),
     );
-    await Future.wait([
+    final saved = await Future.wait([
       _prefs.setInt(_schemaKey, 1),
       _prefs.setBool('${_prefix}daily_enabled', normalized.dailyEnabled),
       _prefs.setInt('${_prefix}daily_hour', normalized.dailyHour),
       _prefs.setInt('${_prefix}daily_minute', normalized.dailyMinute),
       _prefs.setBool('${_prefix}budget_enabled', normalized.budgetEnabled),
+      _prefs.setBool('${_prefix}living_enabled', normalized.livingEnabled),
       _prefs.setBool('${_prefix}weekly_enabled', normalized.weeklyEnabled),
       _prefs.setInt('${_prefix}weekly_weekday', normalized.weeklyWeekday),
       _prefs.setInt('${_prefix}weekly_hour', normalized.weeklyHour),
@@ -82,6 +96,9 @@ class NotificationPreferencesRepository {
       _prefs.setInt('${_prefix}deals_hour', normalized.dealsHour),
       _prefs.setInt('${_prefix}deals_minute', normalized.dealsMinute),
     ]);
+    if (saved.any((ok) => !ok)) {
+      throw StateError('Unable to persist notification preferences');
+    }
     // Preserve compatibility for the existing settings page until it is fully migrated.
     await _prefs.setBool('reminder_enabled', normalized.dailyEnabled);
     await _prefs.setString(

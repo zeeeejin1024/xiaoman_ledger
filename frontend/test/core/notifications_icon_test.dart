@@ -23,4 +23,18 @@ void main() {
       contains('tools:keep="@drawable/ic_notification"'),
     );
   });
+
+  test('Android release shrinking preserves Gson generic metadata', () {
+    final keepRules = File('android/app/proguard-rules.pro');
+
+    expect(keepRules.existsSync(), isTrue);
+    final rules = keepRules.readAsStringSync();
+    expect(rules, contains('-keepattributes Signature'));
+    expect(rules, contains('com.google.gson.reflect.TypeToken'));
+    expect(
+      rules,
+      contains('-keep class com.dexterous.flutterlocalnotifications.**'),
+    );
+    expect(rules, contains('-keep class com.google.gson.reflect.TypeToken'));
+  });
 }

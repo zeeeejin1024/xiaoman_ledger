@@ -6,17 +6,28 @@ class NotificationPolicy {
   static const testScheduledId = 200098;
   static const testImmediateId = 200099;
   static const dailyBaseId = 100000;
+  static const dailyReminderId = 100090;
+  static const dailyWindowDays = 30;
+  static Iterable<int> get dailyWindowIds =>
+      List.generate(dailyWindowDays, (index) => dailyReminderId + index);
   static const dealBaseId = 300000;
   static const budgetBaseId = 400000;
+
+  static Iterable<int> get legacyDailyIds sync* {
+    for (var id = dailyBaseId; id < dailyReminderId; id++) {
+      yield id;
+    }
+  }
 
   static List<DateTime> dailyOccurrences({
     required DateTime now,
     required int hour,
     required int minute,
     int days = 90,
+    bool skipToday = false,
   }) {
     final first = DateTime(now.year, now.month, now.day, hour, minute);
-    var cursor = first.isAfter(now)
+    var cursor = first.isAfter(now) && !skipToday
         ? first
         : first.add(const Duration(days: 1));
     return List<DateTime>.generate(days, (index) {

@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import List, Optional
 from sqlalchemy.orm import Session
-from app.models.savings_goal import SavingsGoal, AutoSaveRule
+from app.models.savings_goal import SavingsGoal, AutoSaveRule, SavingsDeposit
 from app.schemas.savings import GoalCreate, GoalUpdate, DepositRequest, RuleCreate
 
 
@@ -39,6 +39,7 @@ def delete_goal(db: Session, goal_id: int, user_id: int) -> bool:
     if not goal:
         return False
     db.query(AutoSaveRule).filter(AutoSaveRule.goal_id == goal_id).delete()
+    db.query(SavingsDeposit).filter(SavingsDeposit.goal_id == goal_id).delete()
     db.delete(goal)
     db.commit()
     return True
@@ -51,12 +52,39 @@ def deposit(db: Session, user_id: int, data: DepositRequest) -> Optional[Savings
     if not goal:
         return None
 
+    db.add(
+        SavingsDeposit(
+            user_id=user_id,
+            goal_id=goal.id,
+            amount=data.amount,
+            note=data.note.strip() if data.note and data.note.strip() else None,
+        )
+    )
     goal.current_amount += data.amount
     if goal.current_amount >= goal.target_amount and not goal.is_completed:
         goal.is_completed = True
     db.commit()
     db.refresh(goal)
     return goal
+
+
+def get_deposit_history(
+    db: Session, goal_id: int, user_id: int
+) -> List[SavingsDeposit]:
+    goal = db.query(SavingsGoal.id).filter(
+        SavingsGoal.id == goal_id, SavingsGoal.user_id == user_id
+    ).first()
+    if not goal:
+        return []
+    return (
+        db.query(SavingsDeposit)
+        .filter(
+            SavingsDeposit.goal_id == goal_id,
+            SavingsDeposit.user_id == user_id,
+        )
+        .order_by(SavingsDeposit.deposited_at.desc(), SavingsDeposit.id.desc())
+        .all()
+    )
 
 
 def create_rule(db: Session, user_id: int, data: RuleCreate) -> AutoSaveRule:

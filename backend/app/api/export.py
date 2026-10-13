@@ -36,7 +36,12 @@ def export_csv(
         type_name = r.type.value if hasattr(r.type, 'value') else r.type
         cat_name = r.category.name if r.category else ""
         note = r.note or ""
-        output.write(f"{r.date},{type_name},{cat_name},{r.amount},{note}\n")
+        # 防止 CSV 注入：转义特殊字符
+        note = note.replace('"', '""')
+        cat_name = cat_name.replace('"', '""')
+        if any(note.startswith(c) for c in ('=', '+', '-', '@', '\t', '\r')):
+            note = f"'{note}"
+        output.write(f'{r.date},{type_name},"{cat_name}",{r.amount},"{note}"\n')
 
     csv_content = output.getvalue()
     output.close()

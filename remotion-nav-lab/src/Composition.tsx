@@ -1,13 +1,13 @@
-import {Composition} from "remotion";
-import {MagneticMeteorComparison} from "./ComparisonComposition";
+import { Composition } from "remotion";
+import { LiquidGlassTrailPreview } from "./ComparisonComposition";
 
 export const MyComposition: React.FC = () => (
   <Composition
-    id="MagneticMeteorComparison"
-    component={MagneticMeteorComparison}
+    id="LiquidGlassTrailPreview"
+    component={LiquidGlassTrailPreview}
     durationInFrames={210}
     fps={30}
-    width={1280}
+    width={960}
     height={720}
   />
 );

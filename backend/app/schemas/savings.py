@@ -21,6 +21,7 @@ class GoalUpdate(BaseModel):
 class DepositRequest(BaseModel):
     goal_id: int
     amount: float = Field(gt=0)
+    note: Optional[str] = Field(default=None, max_length=200)
 
 
 class RuleCreate(BaseModel):

@@ -3,7 +3,11 @@ class AuthData {
   final String token;
   final bool needMigrate;
 
-  AuthData({required this.username, required this.token, this.needMigrate = false});
+  AuthData({
+    required this.username,
+    required this.token,
+    this.needMigrate = false,
+  });
 
   factory AuthData.fromJson(Map<String, dynamic> json) {
     return AuthData(

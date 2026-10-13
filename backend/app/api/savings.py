@@ -70,6 +70,46 @@ def deposit(data: DepositRequest, db: Session = Depends(get_db), user: User = De
     return success(data=_goal_out(goal))
 
 
+@router.get("/goals/{goal_id}/history")
+def deposit_history(
+    goal_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    goal = db.query(SavingsGoal).filter(
+        SavingsGoal.id == goal_id, SavingsGoal.user_id == user.id
+    ).first()
+    if not goal:
+        return error(404, "目标不存在")
+
+    records = svc.get_deposit_history(db, goal_id, user.id)
+    recorded_amount = sum(record.amount for record in records)
+    items = [
+        {
+            "id": record.id,
+            "amount": record.amount,
+            "note": record.note,
+            "deposited_at": record.deposited_at.isoformat() + (
+                "Z" if record.deposited_at.tzinfo is None else ""
+            ),
+            "is_legacy": False,
+        }
+        for record in records
+    ]
+    legacy_amount = max(0.0, round(goal.current_amount - recorded_amount, 2))
+    if legacy_amount > 0:
+        items.append(
+            {
+                "id": None,
+                "amount": legacy_amount,
+                "note": "升级前累计",
+                "deposited_at": None,
+                "is_legacy": True,
+            }
+        )
+    return success(data=items)
+
+
 @router.post("/rules")
 def create_rule(data: RuleCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     rule = svc.create_rule(db, user.id, data)

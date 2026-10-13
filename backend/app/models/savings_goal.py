@@ -30,6 +30,7 @@ class SavingsGoal(Base):
     )
 
     rules = relationship("AutoSaveRule", back_populates="goal", lazy="select")
+    deposits = relationship("SavingsDeposit", back_populates="goal", lazy="select")
 
 
 class AutoSaveRule(Base):
@@ -45,3 +46,22 @@ class AutoSaveRule(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     goal = relationship("SavingsGoal", back_populates="rules")
+
+
+class SavingsDeposit(Base):
+    __tablename__ = "savings_deposits"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
+    goal_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("savings_goals.id"), nullable=False, index=True
+    )
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    note: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    deposited_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    goal = relationship("SavingsGoal", back_populates="deposits")

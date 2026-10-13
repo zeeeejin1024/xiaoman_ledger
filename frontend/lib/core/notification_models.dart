@@ -2,11 +2,24 @@ import 'dart:convert';
 
 enum BudgetThreshold { eightyPercent, hundredPercent }
 
+class NotificationQueueState {
+  final int? count;
+
+  const NotificationQueueState._(this.count);
+  const NotificationQueueState.ready(int count) : this._(count);
+
+  static const unavailable = NotificationQueueState._(null);
+
+  bool get isAvailable => count != null;
+  String get displayText => isAvailable ? '$count 条' : '暂不可用';
+}
+
 class NotificationPreferences {
   final bool dailyEnabled;
   final int dailyHour;
   final int dailyMinute;
   final bool budgetEnabled;
+  final bool livingEnabled;
   final bool weeklyEnabled;
   final int weeklyWeekday;
   final int weeklyHour;
@@ -24,6 +37,7 @@ class NotificationPreferences {
     this.dailyHour = 21,
     this.dailyMinute = 0,
     this.budgetEnabled = false,
+    this.livingEnabled = true,
     this.weeklyEnabled = true,
     this.weeklyWeekday = DateTime.monday,
     this.weeklyHour = 9,
@@ -42,6 +56,7 @@ class NotificationPreferences {
     int? dailyHour,
     int? dailyMinute,
     bool? budgetEnabled,
+    bool? livingEnabled,
     bool? weeklyEnabled,
     int? weeklyWeekday,
     int? weeklyHour,
@@ -58,6 +73,7 @@ class NotificationPreferences {
     dailyHour: dailyHour ?? this.dailyHour,
     dailyMinute: dailyMinute ?? this.dailyMinute,
     budgetEnabled: budgetEnabled ?? this.budgetEnabled,
+    livingEnabled: livingEnabled ?? this.livingEnabled,
     weeklyEnabled: weeklyEnabled ?? this.weeklyEnabled,
     weeklyWeekday: weeklyWeekday ?? this.weeklyWeekday,
     weeklyHour: weeklyHour ?? this.weeklyHour,

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart' as m;
@@ -73,30 +72,30 @@ class AppColorScheme {
   });
 
   // ============================================================
-  // 1. unfinishedRing「未满之圆」— 纸张、深松绿与一笔珊瑚
+  // 1. unfinishedRing「未满之圆」— 月白、石墨蓝与蔷薇莓
   // ============================================================
   static const warmAmber = AppColorScheme(
     name: '未满之圆',
-    bg: Color(0xFFF5F4EE),
-    bgDeep: Color(0xFFECEAE1),
+    bg: Color(0xFFF4F4F0),
+    bgDeep: Color(0xFFECEDEA),
     card: Color(0xFFFFFFFF),
-    cardAlt: Color(0xFFF9F8F3),
-    accent: Color(0xFF173E37),
-    accentDark: Color(0xFF0E302B),
-    ink: Color(0xFF172C2A),
-    ink2: Color(0xFF4A5B56),
-    gray: Color(0xFF7C8982),
-    navBg: Color(0xFFFBFAF6),
-    success: Color(0xFF327E63),
-    danger: Color(0xFFD56F54),
-    info: Color(0xFF7B998D),
-    premium: Color(0xFF173E37),
-    premiumLight: Color(0xFF98AFA1),
-    premiumDark: Color(0xFF0E302B),
-    highlight: Color(0xFFD56F54),
-    bgGlowColor: Color(0xFFD3DED4),
-    heroGradient: [Color(0xFF204E45), Color(0xFF173E37)],
-    buttonGradient: [Color(0xFFD77A5A), Color(0xFFC35E45)],
+    cardAlt: Color(0xFFF8F8F4),
+    accent: Color(0xFF273640),
+    accentDark: Color(0xFF1E2B33),
+    ink: Color(0xFF24343D),
+    ink2: Color(0xFF53636A),
+    gray: Color(0xFF7C898E),
+    navBg: Color(0xFFFAFAF6),
+    success: Color(0xFF5F8B76),
+    danger: Color(0xFFB45B6C),
+    info: Color(0xFF587A86),
+    premium: Color(0xFF273640),
+    premiumLight: Color(0xFF8FA8AF),
+    premiumDark: Color(0xFF1E2B33),
+    highlight: Color(0xFFB45B6C),
+    bgGlowColor: Color(0xFFD2DEE0),
+    heroGradient: [Color(0xFF344C57), Color(0xFF273640)],
+    buttonGradient: [Color(0xFFC87382), Color(0xFFB45B6C)],
     bgGlowPos: Alignment(-0.6, -0.5),
   );
 
@@ -185,7 +184,7 @@ class AppColorScheme {
   );
 
   // ============================================================
-  // 5. darkInk「深墨」— 午夜海军蓝，干净暖金
+  // 5. darkInk「深墨」— 炭黑蓝灰，雾青结构色
   // ============================================================
   static const darkInk = AppColorScheme(
     name: '深墨',
@@ -193,28 +192,28 @@ class AppColorScheme {
     bgDeep: Color(0xFF141720),
     card: Color(0xFF242736),
     cardAlt: Color(0xFF282B3A),
-    accent: Color(0xFFD4A854),
-    accentDark: Color(0xFFB89038),
+    accent: Color(0xFF8FA8AF),
+    accentDark: Color(0xFF6F8E97),
     ink: Color(0xFFFFFFFF),
     ink2: Color(0xFFC8C5CD),
     gray: Color(0xFF98959E),
     navBg: Color(0xFF1E2030),
     success: Color(0xFF68A880),
-    danger: Color(0xFFE88870),
-    info: Color(0xFF98B8D0),
-    premium: Color(0xFFD4A854),
-    premiumLight: Color(0xFFE0C878),
-    premiumDark: Color(0xFFB08830),
-    highlight: Color(0xFF90C8E0),
+    danger: Color(0xFFD47B8B),
+    info: Color(0xFF86AAB2),
+    premium: Color(0xFF587A86),
+    premiumLight: Color(0xFF9BBBC1),
+    premiumDark: Color(0xFF3E5F69),
+    highlight: Color(0xFFD47B8B),
     bgGlowColor: Color(0xFF3A3850),
     heroGradient: [Color(0xFF282C42), Color(0xFF181B2A)],
-    buttonGradient: [Color(0xFFD4A854), Color(0xFFB89038)],
+    buttonGradient: [Color(0xFFD47B8B), Color(0xFFB45B6C)],
     bgGlowPos: null, // dark uses center ambient
     brightness: Brightness.dark,
   );
 
   // ============================================================
-  // 6. deepNight「极夜」— 纯黑极简，亮金对比
+  // 6. deepNight「极夜」— 纯黑极简，雾青与蔷薇莓
   // ============================================================
   static const deepNight = AppColorScheme(
     name: '极夜',
@@ -222,22 +221,22 @@ class AppColorScheme {
     bgDeep: Color(0xFF080A10),
     card: Color(0xFF161822),
     cardAlt: Color(0xFF1A1C26),
-    accent: Color(0xFFD4A854),
-    accentDark: Color(0xFFC49A40),
+    accent: Color(0xFF86AAB2),
+    accentDark: Color(0xFF668E98),
     ink: Color(0xFFFFFFFF),
     ink2: Color(0xFFD0CDD8),
     gray: Color(0xFFA09CA8),
     navBg: Color(0xFF10121A),
     success: Color(0xFF78B090),
-    danger: Color(0xFFF09078),
-    info: Color(0xFFA0C0D8),
-    premium: Color(0xFFD8A850),
-    premiumLight: Color(0xFFE8C878),
-    premiumDark: Color(0xFFBC9038),
-    highlight: Color(0xFFA0D8F0),
+    danger: Color(0xFFE18A9A),
+    info: Color(0xFF91B8C0),
+    premium: Color(0xFF587A86),
+    premiumLight: Color(0xFFA6C4C9),
+    premiumDark: Color(0xFF3E5F69),
+    highlight: Color(0xFFE18A9A),
     bgGlowColor: Color(0xFF2A2838),
     heroGradient: [Color(0xFF181A26), Color(0xFF0B0D14)],
-    buttonGradient: [Color(0xFFE0B868), Color(0xFFC49A40)],
+    buttonGradient: [Color(0xFFE18A9A), Color(0xFFB45B6C)],
     bgGlowPos: null, // dark uses center ambient
     brightness: Brightness.dark,
   );
@@ -257,9 +256,35 @@ class AppColorScheme {
 // ============================================================
 class AppColors {
   static AppColorScheme _s = AppColorScheme.warmAmber;
+  static final ValueNotifier<AppColorScheme> notifier =
+      ValueNotifier<AppColorScheme>(_s);
   static AppColorScheme get scheme => _s;
   static int get schemeIndex => AppColorScheme.all.indexOf(_s);
-  static void apply(AppColorScheme s) => _s = s;
+  static final systemUiOverride = ValueNotifier<SystemUiOverlayStyle?>(null);
+  static void apply(AppColorScheme s) {
+    if (identical(_s, s)) return;
+    _s = s;
+    notifier.value = s;
+  }
+
+  static SystemUiOverlayStyle get systemUiOverlayStyle =>
+      systemUiOverride.value ?? overlayForScheme(_s);
+
+  static SystemUiOverlayStyle overlayForScheme(AppColorScheme scheme) =>
+      SystemUiOverlayStyle(
+        statusBarColor: scheme.bg,
+        statusBarIconBrightness: scheme.brightness == Brightness.dark
+            ? Brightness.light
+            : Brightness.dark,
+        statusBarBrightness: scheme.brightness,
+        systemNavigationBarColor: scheme.navBg,
+        systemNavigationBarIconBrightness: scheme.brightness == Brightness.dark
+            ? Brightness.light
+            : Brightness.dark,
+        systemNavigationBarDividerColor: scheme.ink.withAlpha(18),
+        systemStatusBarContrastEnforced: false,
+        systemNavigationBarContrastEnforced: false,
+      );
 
   // --- scheme tokens ---
   static Color get bg => _s.bg;
@@ -313,8 +338,7 @@ class AppColors {
   static Color get red => danger;
   static Color get mistBlue => info;
   static Color get blue => info;
-  static Color get coral =>
-      Color.lerp(_s.accent, const Color(0xFFF0A060), 0.4)!;
+  static Color get coral => danger;
 
   // --- gradients ---
   static List<Color>? get heroGradient => _s.heroGradient;
@@ -344,6 +368,43 @@ class AppColors {
   }
 
   static List<Color> get chartPalette => List.generate(6, chartColor);
+}
+
+class AppSystemUiBridge {
+  static const _channel = MethodChannel('xiaojia/system_ui');
+
+  static Future<void> apply(
+    AppColorScheme scheme, {
+    SystemUiOverlayStyle? overlay,
+  }) => _channel.invokeMethod('apply', <String, dynamic>{
+    'isDark': overlay == null
+        ? scheme.brightness == Brightness.dark
+        : overlay.statusBarIconBrightness == Brightness.light,
+    if (overlay != null)
+      'navigationIsDark':
+          overlay.systemNavigationBarIconBrightness == Brightness.light,
+  });
+}
+
+class AppThemeBuilder extends StatelessWidget {
+  final Widget Function(BuildContext context, AppColorScheme scheme) builder;
+
+  const AppThemeBuilder({super.key, required this.builder});
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<AppColorScheme>(
+    valueListenable: AppColors.notifier,
+    builder: (context, scheme, _) => builder(context, scheme),
+  );
+}
+
+class AppThemedPage extends StatelessWidget {
+  final Widget Function(BuildContext context, AppColorScheme scheme) builder;
+
+  const AppThemedPage({super.key, required this.builder});
+
+  @override
+  Widget build(BuildContext context) => AppThemeBuilder(builder: builder);
 }
 
 // ============================================================
@@ -448,7 +509,7 @@ class _StaggeredListState extends State<StaggeredList>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _ctrl,
-      builder: (_, __) => Column(
+      builder: (_, _) => Column(
         children: List.generate(widget.itemCount, (i) {
           final delay =
               i *
@@ -512,31 +573,26 @@ class PremiumCard extends StatelessWidget {
     ];
     final card = ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: padding ?? EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.card.withAlpha(200)
-                : Colors.white.withAlpha(128),
-            gradient: gradient != null
-                ? LinearGradient(
-                    colors: gradient!,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            borderRadius: BorderRadius.circular(radius),
-            border: Border.all(
-              color: goldBorder
-                  ? AppColors.premiumLight.withAlpha(180)
-                  : AppColors.premiumLight.withAlpha(isDark ? 20 : 12),
-            ),
-            boxShadow: shadows ?? defaultShadows,
+      child: Container(
+        padding: padding ?? EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.card.withAlpha(244) : AppColors.card,
+          gradient: gradient != null
+              ? LinearGradient(
+                  colors: gradient!,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(
+            color: goldBorder
+                ? AppColors.premiumLight.withAlpha(180)
+                : AppColors.premiumLight.withAlpha(isDark ? 20 : 12),
           ),
-          child: child,
+          boxShadow: shadows ?? defaultShadows,
         ),
+        child: child,
       ),
     );
     if (onTap != null) return PressScale(onTap: onTap, child: card);
@@ -562,7 +618,7 @@ class GoldButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.premium.withAlpha(AppColors.isDark ? 160 : 80),
+            color: AppColors.highlight.withAlpha(AppColors.isDark ? 160 : 80),
             blurRadius: AppColors.isDark ? 28 : 20,
             offset: const Offset(0, 8),
           ),
@@ -595,14 +651,14 @@ class PremiumBar extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.gold;
+    final c = color ?? AppColors.info;
     return ClipRRect(
       borderRadius: BorderRadius.circular(height / 2),
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: value.clamp(0.0, 1.0)),
         duration: AppAnimations.normal,
         curve: Curves.easeOutCubic,
-        builder: (_, v, __) => LinearProgressIndicator(
+        builder: (_, v, _) => LinearProgressIndicator(
           value: v,
           minHeight: height,
           backgroundColor: c.withAlpha(35),
@@ -631,7 +687,7 @@ class NavIcon extends StatelessWidget {
     child: Icon(
       _icons[index],
       size: 24,
-      color: active ? AppColors.highlight : AppColors.gray,
+      color: active ? AppColors.info : AppColors.gray,
     ),
   );
   static const _icons = [
@@ -718,31 +774,32 @@ ThemeData appTheme() => ThemeData(
     elevation: 0,
     foregroundColor: AppColors.ink,
     scrolledUnderElevation: 0,
+    systemOverlayStyle: AppColors.systemUiOverlayStyle,
   ),
   bottomNavigationBarTheme: BottomNavigationBarThemeData(
     backgroundColor: AppColors.navBg,
-    selectedItemColor: AppColors.highlight,
+    selectedItemColor: AppColors.info,
     unselectedItemColor: AppColors.gray,
     type: BottomNavigationBarType.fixed,
     elevation: 0,
   ),
   navigationBarTheme: NavigationBarThemeData(
     backgroundColor: AppColors.navBg,
-    indicatorColor: AppColors.accent.withAlpha(18),
+    indicatorColor: AppColors.info.withAlpha(24),
     elevation: 0,
     labelTextStyle: WidgetStateProperty.resolveWith(
       (states) => TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w600,
         color: states.contains(WidgetState.selected)
-            ? AppColors.accent
+            ? AppColors.info
             : AppColors.gray,
       ),
     ),
     iconTheme: WidgetStateProperty.resolveWith(
       (states) => IconThemeData(
         color: states.contains(WidgetState.selected)
-            ? AppColors.accent
+            ? AppColors.info
             : AppColors.gray,
         size: 22,
       ),
@@ -750,10 +807,10 @@ ThemeData appTheme() => ThemeData(
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      backgroundColor: AppColors.accent,
+      backgroundColor: AppColors.highlight,
       foregroundColor: Colors.white,
       elevation: 0,
-      shadowColor: AppColors.premium.withAlpha(80),
+      shadowColor: AppColors.highlight.withAlpha(80),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       minimumSize: const Size(double.infinity, 52),
       textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),

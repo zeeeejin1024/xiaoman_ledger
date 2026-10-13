@@ -147,6 +147,8 @@ def reset_password(data: dict, db: Session = Depends(get_db)):
 
     try:
         payload = decode_token(temp_token)
+        if payload.get("type") != "temp":
+            return error(401, "令牌类型错误")
         user_id = int(payload.get("sub", 0))
     except Exception:
         return error(401, "临时令牌无效或已过期")

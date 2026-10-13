@@ -59,7 +59,7 @@ def _match_category(vl_category, db_categories):
                 for c in db_categories:
                     if t in c:
                         return c
-    return db_categories[0] if db_categories else ""
+    return ""
 
 def parse_receipt(image_base64, db):
     if not QWEN_API_KEY:
@@ -70,12 +70,13 @@ def parse_receipt(image_base64, db):
 
     prompt = (
         "识别这张支付/账单截图中的所有消费记录。\n\n"
-        "要求：\n"
-        "1. 仔细识别截图中的每一笔消费/收款\n"
-        "2. 金额必须是截图中显示的真实数字\n"
-        "3. 商家名称尽量准确识别\n"
-        "4. 日期：如果截图中有明确的日期（如5月25日、2026-05-25），则识别出来；如果没有明确日期，返回空字符串\n"
-        "5. 每笔消费单独一条记录\n\n"
+        "重要规则（严格遵守）：\n"
+        "1. 金额：必须是截图中显示的真实数字，不要猜测或推测\n"
+        "2. 日期：如果截图中有明确的日期（如5月25日、2026-05-25、周二），则识别出来；如果没有明确日期，必须返回空字符串\"\"\n"
+        "3. 商家名称：如果截图中有明确的商家名/店铺名/收款方，则识别出来；如果没有，必须返回空字符串\"\"\n"
+        "4. 备注：如果截图中有明确的备注信息，则识别出来；如果没有，必须返回空字符串\"\"\n"
+        "5. 不要使用同一张截图上其他消费的信息来猜测当前消费的日期/商家/备注\n"
+        "6. 每笔消费单独一条记录\n\n"
         "返回格式（纯 JSON，不要 markdown 代码块）：\n"
         '{"items":[{"type":"expense","amount":22.5,"category":"午餐","merchant":"瑞幸咖啡","date":"2026-05-31","note":""}]}\n\n'
         "type 只能是 expense 或 income。\n"

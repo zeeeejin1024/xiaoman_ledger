@@ -6,7 +6,11 @@ class ShimmerLoading extends StatefulWidget {
   final Widget child;
   final bool isLoading;
 
-  const ShimmerLoading({super.key, required this.child, required this.isLoading});
+  const ShimmerLoading({
+    super.key,
+    required this.child,
+    required this.isLoading,
+  });
 
   @override
   State<ShimmerLoading> createState() => _ShimmerLoadingState();
@@ -19,8 +23,10 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))
-      ..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
   }
 
   @override
@@ -39,11 +45,7 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
         return ShaderMask(
           shaderCallback: (bounds) {
             return LinearGradient(
-              colors: [
-                AppColors.card,
-                AppColors.cardAlt,
-                AppColors.card,
-              ],
+              colors: [AppColors.card, AppColors.cardAlt, AppColors.card],
               stops: const [0.0, 0.5, 1.0],
             ).createShader(bounds);
           },
@@ -85,7 +87,14 @@ class HomeShimmer extends StatelessWidget {
               children: [
                 Container(width: 120, height: 24, color: AppColors.card),
                 Spacer(),
-                Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(8))),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ],
             ),
           ),
@@ -95,7 +104,10 @@ class HomeShimmer extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Container(
               height: 120,
-              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(18)),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(18),
+              ),
             ),
           ),
           SizedBox(height: AppSpacing.lg),
@@ -104,21 +116,37 @@ class HomeShimmer extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(3, (i) => Container(
-                width: 52, height: 52,
-                decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
-              )),
+              children: List.generate(
+                3,
+                (i) => Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
             ),
           ),
           SizedBox(height: AppSpacing.lg),
           // Records skeleton
-          ...List.generate(3, (i) => Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
-            child: Container(
-              height: 60,
-              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
+          ...List.generate(
+            3,
+            (i) => Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: 8,
+              ),
+              child: Container(
+                height: 60,
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -138,20 +166,29 @@ class StatsShimmer extends StatelessWidget {
           SizedBox(height: AppSpacing.xl),
           // Total amount skeleton
           Center(
-            child: Column(children: [
-              Container(width: 200, height: 48, color: AppColors.card),
-              SizedBox(height: 8),
-              Container(width: 80, height: 16, color: AppColors.card),
-            ]),
+            child: Column(
+              children: [
+                Container(width: 200, height: 48, color: AppColors.card),
+                SizedBox(height: 8),
+                Container(width: 80, height: 16, color: AppColors.card),
+              ],
+            ),
           ),
           SizedBox(height: AppSpacing.lg),
           // Stats row skeleton
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(3, (i) => Container(
-              width: 80, height: 60,
-              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
-            )),
+            children: List.generate(
+              3,
+              (i) => Container(
+                width: 80,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ),
           SizedBox(height: AppSpacing.lg),
           // Chart skeleton
@@ -159,7 +196,10 @@ class StatsShimmer extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Container(
               height: 200,
-              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
         ],

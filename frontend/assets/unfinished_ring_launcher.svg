@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect x="48" y="48" width="928" height="928" rx="232" fill="#173E37"/>
-  <circle cx="512" cy="512" r="270" fill="none" stroke="#F5F4EE" stroke-width="82" stroke-linecap="round" stroke-dasharray="1432 330" transform="rotate(-22 512 512)"/>
-  <path d="M706 244L778 316" fill="none" stroke="#D56F54" stroke-width="38" stroke-linecap="round"/>
-  <path d="M753 212L805 264" fill="none" stroke="#D56F54" stroke-width="18" stroke-linecap="round" opacity=".68"/>
-  <path d="M510 194V250M590 202V250M669 226V272" fill="none" stroke="#F5F4EE" stroke-width="18" stroke-linecap="round" opacity=".78"/>
+  <rect x="48" y="48" width="928" height="928" rx="232" fill="#273640"/>
+  <circle cx="512" cy="512" r="270" fill="none" stroke="#F4F4F0" stroke-width="82" stroke-linecap="round" stroke-dasharray="1432 330" transform="rotate(-22 512 512)"/>
+  <path d="M706 244L778 316" fill="none" stroke="#B45B6C" stroke-width="38" stroke-linecap="round"/>
+  <path d="M753 212L805 264" fill="none" stroke="#B45B6C" stroke-width="18" stroke-linecap="round" opacity=".68"/>
+  <path d="M510 194V250M590 202V250M669 226V272" fill="none" stroke="#F4F4F0" stroke-width="18" stroke-linecap="round" opacity=".78"/>
 </svg>

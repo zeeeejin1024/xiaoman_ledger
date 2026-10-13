@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -6,11 +8,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiaojia_ledger/core/theme.dart';
+import 'package:xiaojia_ledger/modules/notifications/notification_center_page.dart';
 import 'package:xiaojia_ledger/core/constants.dart';
 import 'package:xiaojia_ledger/core/router.dart';
-import 'package:xiaojia_ledger/core/notifications.dart';
-import 'package:xiaojia_ledger/core/notification_coordinator.dart';
-import 'package:xiaojia_ledger/core/calendar_service.dart';
 import 'package:xiaojia_ledger/modules/home/home_page.dart';
 import 'package:xiaojia_ledger/data/api/api_client.dart';
 import 'package:xiaojia_ledger/modules/settings/about_page.dart';
@@ -23,114 +23,20 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  int _idx = 0;
-  bool _reminderEnabled = false;
-  bool _budgetEnabled = false;
-  bool _weeklyEnabled = true;
-  bool _monthlyEnabled = true;
-  bool _dealsEnabled = false;
-  bool _notificationPermission = false;
-  int _pendingNotifications = 0;
-  bool _calendarSyncEnabled = false;
-  String _reminderTime = '21:00';
   String _syncFrequency = '手动';
 
   @override
   void initState() {
     super.initState();
-    _idx = AppColors.schemeIndex;
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final syncEnabled = await CalendarService.isSyncEnabled();
-    final coordinator = await NotificationCoordinator.shared();
-    final n = coordinator.settings;
-    final permission = await NotificationService.isPermissionGranted();
-    final pending = await NotificationService.pendingCount();
+    if (!mounted) return;
     setState(() {
-      _reminderEnabled = n.dailyEnabled;
-      _reminderTime =
-          '${n.dailyHour.toString().padLeft(2, '0')}:${n.dailyMinute.toString().padLeft(2, '0')}';
-      _budgetEnabled = n.budgetEnabled;
-      _weeklyEnabled = n.weeklyEnabled;
-      _monthlyEnabled = n.monthlyEnabled;
-      _dealsEnabled = n.dealsEnabled;
-      _notificationPermission = permission;
-      _pendingNotifications = pending;
-      _calendarSyncEnabled = syncEnabled;
       _syncFrequency = prefs.getString('sync_frequency') ?? '手动';
     });
-  }
-
-  Future<void> _toggleNotificationType(String type, bool enabled) async {
-    final coordinator = await NotificationCoordinator.shared();
-    final current = coordinator.settings;
-    final next = switch (type) {
-      'daily' => current.copyWith(dailyEnabled: enabled),
-      'budget' => current.copyWith(budgetEnabled: enabled),
-      'weekly' => current.copyWith(weeklyEnabled: enabled),
-      'monthly' => current.copyWith(monthlyEnabled: enabled),
-      'deals' => current.copyWith(dealsEnabled: enabled),
-      _ => current,
-    };
-    final ok = await coordinator.requestPermissionAndUpdate(next);
-    if (!ok && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('需要通知权限才能开启提醒')));
-      return;
-    }
-    await _loadSettings();
-  }
-
-  Future<void> _scheduleReminder() async {
-    final p = await SharedPreferences.getInstance();
-    await p.setString('reminder_time', _reminderTime);
-    final parts = _reminderTime.split(':');
-    final hour = int.parse(parts[0]);
-    final minute = int.parse(parts[1]);
-    final coordinator = await NotificationCoordinator.shared();
-    await coordinator.requestPermissionAndUpdate(
-      coordinator.settings.copyWith(
-        dailyEnabled: true,
-        dailyHour: hour,
-        dailyMinute: minute,
-      ),
-    );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('记账提醒已开启，每天 $_reminderTime 提醒')));
-  }
-
-  Future<void> _pickReminderTime() async {
-    final parts = _reminderTime.split(':');
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(
-        hour: int.parse(parts[0]),
-        minute: int.parse(parts[1]),
-      ),
-    );
-    if (time != null) {
-      final newTime =
-          '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-      setState(() => _reminderTime = newTime);
-      final p = await SharedPreferences.getInstance();
-      await p.setString('reminder_time', newTime);
-      final coordinator = await NotificationCoordinator.shared();
-      await coordinator.requestPermissionAndUpdate(
-        coordinator.settings.copyWith(
-          dailyEnabled: true,
-          dailyHour: time.hour,
-          dailyMinute: time.minute,
-        ),
-      );
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('提醒时间已设为 $newTime')));
-    }
   }
 
   Future<void> _pickSyncFrequency() async {
@@ -164,31 +70,11 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  void _pickScheme(int i) async {
-    final s = AppColorScheme.all[i];
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('color_scheme', i);
-    AppColors.apply(s);
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: s.brightness == Brightness.dark
-            ? Brightness.light
-            : Brightness.dark,
-        systemNavigationBarColor: s.navBg,
-        systemNavigationBarIconBrightness: s.brightness == Brightness.dark
-            ? Brightness.light
-            : Brightness.dark,
-      ),
-    );
-    if (mounted)
-      setState(() {
-        _idx = i;
-      });
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      AppThemedPage(builder: (context, _) => _buildPage(context));
+
+  Widget _buildPage(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -274,181 +160,30 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           SizedBox(height: 20),
-          // 记账提醒
           PremiumCard(
             padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                _row(
-                  Icons.notifications_rounded,
-                  '记账提醒',
-                  trailing: Switch(
-                    value: _reminderEnabled,
-                    onChanged: (v) async {
-                      HapticFeedback.lightImpact();
-                      await _toggleNotificationType('daily', v);
-                    },
-                  ),
+            child: _row(
+              Icons.notifications_active_outlined,
+              '通知中心',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationCenterPage(),
                 ),
-                if (_reminderEnabled) ...[
-                  Divider(indent: 52),
-                  _row(
-                    Icons.access_time_rounded,
-                    '提醒时间',
-                    trailing: Text(
-                      _reminderTime,
-                      style: TextStyle(fontSize: 14, color: AppColors.gray),
-                    ),
-                    onTap: _pickReminderTime,
-                  ),
-                  Divider(indent: 52),
-                  _row(
-                    Icons.send_rounded,
-                    '测试即时通知',
-                    onTap: () async {
-                      HapticFeedback.lightImpact();
-                      await NotificationService.testNotification();
-                      if (mounted)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('即时通知已发送，查看通知栏')),
-                        );
-                    },
-                  ),
-                  Divider(indent: 52),
-                  _row(
-                    Icons.timer_rounded,
-                    '测试定时通知（15秒）',
-                    onTap: () async {
-                      HapticFeedback.lightImpact();
-                      final ok =
-                          await NotificationService.testScheduledNotification();
-                      if (mounted)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              ok ? '定时通知已调度，15秒后查看通知栏' : '调度失败，请检查权限',
-                            ),
-                          ),
-                        );
-                    },
-                  ),
-                ],
-                Divider(indent: 52),
-                _row(
-                  Icons.account_balance_wallet_rounded,
-                  '预算超支提醒',
-                  trailing: Switch(
-                    value: _budgetEnabled,
-                    onChanged: (v) => _toggleNotificationType('budget', v),
-                  ),
-                ),
-                Divider(indent: 52),
-                _row(
-                  Icons.auto_awesome_rounded,
-                  '省钱周报提醒',
-                  trailing: Switch(
-                    value: _weeklyEnabled,
-                    onChanged: (v) => _toggleNotificationType('weekly', v),
-                  ),
-                ),
-                Divider(indent: 52),
-                _row(
-                  Icons.calendar_month_rounded,
-                  '月度报告提醒',
-                  trailing: Switch(
-                    value: _monthlyEnabled,
-                    onChanged: (v) => _toggleNotificationType('monthly', v),
-                  ),
-                ),
-                Divider(indent: 52),
-                _row(
-                  Icons.local_offer_rounded,
-                  '优惠到期提醒',
-                  trailing: Switch(
-                    value: _dealsEnabled,
-                    onChanged: (v) => _toggleNotificationType('deals', v),
-                  ),
-                ),
-                Divider(indent: 52),
-                _row(
-                  Icons.pending_actions_rounded,
-                  '待触发通知',
-                  trailing: Text(
-                    '$_pendingNotifications 条',
-                    style: TextStyle(fontSize: 13, color: AppColors.gray),
-                  ),
-                ),
-                Divider(indent: 52),
-                _row(
-                  _notificationPermission
-                      ? Icons.notifications_active_rounded
-                      : Icons.notifications_off_rounded,
-                  _notificationPermission ? '通知权限已开启' : '通知权限未开启',
-                  trailing: _notificationPermission
-                      ? null
-                      : TextButton(
-                          onPressed: () async {
-                            await NotificationService.openSystemNotificationSettings();
-                          },
-                          child: const Text('去设置'),
-                        ),
-                ),
-                Divider(indent: 52),
-                _row(
-                  Icons.calendar_today_rounded,
-                  '日历同步',
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '同步周报/月报',
-                        style: TextStyle(fontSize: 11, color: AppColors.gray),
-                      ),
-                      SizedBox(width: 8),
-                      Switch(
-                        value: _calendarSyncEnabled,
-                        onChanged: (v) async {
-                          HapticFeedback.lightImpact();
-                          if (v) {
-                            final granted =
-                                await CalendarService.requestPermission();
-                            if (!granted) {
-                              if (mounted)
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('需要日历权限才能同步')),
-                                );
-                              return;
-                            }
-                          }
-                          setState(() => _calendarSyncEnabled = v);
-                          await CalendarService.setSyncEnabled(v);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                Divider(indent: 52),
-                _row(
-                  Icons.sync_rounded,
-                  '自动同步',
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _syncFrequency,
-                        style: TextStyle(fontSize: 11, color: AppColors.gray),
-                      ),
-                      SizedBox(width: 8),
-                      Icon(
-                        Icons.chevron_right,
-                        color: AppColors.gray,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                  onTap: _pickSyncFrequency,
-                ),
-              ],
+              ),
+            ),
+          ),
+          SizedBox(height: 12),
+          PremiumCard(
+            padding: EdgeInsets.zero,
+            child: _row(
+              Icons.sync_rounded,
+              '自动同步',
+              trailing: Text(
+                _syncFrequency,
+                style: TextStyle(color: AppColors.gray),
+              ),
+              onTap: _pickSyncFrequency,
             ),
           ),
           SizedBox(height: 20),
@@ -462,12 +197,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: () async {
                     HapticFeedback.lightImpact();
                     try {
-                      final r = await ApiClient().get('/export/csv');
+                      final r = await ApiClient().get(
+                        '/export/csv',
+                        options: Options(responseType: ResponseType.plain),
+                      );
+                      final csvText = r.data as String;
+                      if (!csvText.contains('日期,类型,分类,金额,备注')) {
+                        throw const FormatException('CSV 表头无效');
+                      }
                       final dir = await getTemporaryDirectory();
                       final f = File(
                         '${dir.path}/records_${DateTime.now().toIso8601String().split('T')[0]}.csv',
                       );
-                      await f.writeAsString(r.data.toString());
+                      await f.writeAsString(csvText);
                       await Share.shareXFiles([
                         XFile(f.path),
                       ], text: '小满记账 - 账单导出');
@@ -486,12 +228,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: () async {
                     HapticFeedback.lightImpact();
                     try {
-                      final r = await ApiClient().get('/export/json');
+                      final r = await ApiClient().get(
+                        '/export/json',
+                        options: Options(responseType: ResponseType.plain),
+                      );
+                      final jsonText = r.data as String;
+                      if (jsonDecode(jsonText) is! List) {
+                        throw const FormatException('JSON 数据无效');
+                      }
                       final dir = await getTemporaryDirectory();
                       final f = File(
                         '${dir.path}/backup_${DateTime.now().toIso8601String().split('T')[0]}.json',
                       );
-                      await f.writeAsString(r.data.toString());
+                      await f.writeAsString(jsonText);
                       await Share.shareXFiles([
                         XFile(f.path),
                       ], text: '小满记账 - 备份导出');

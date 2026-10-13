@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:xiaojia_ledger/core/theme.dart';
 import 'package:xiaojia_ledger/data/api/stats_api.dart';
+import 'package:xiaojia_ledger/modules/report/report_view_data.dart';
 import 'package:xiaojia_ledger/widgets/unfinished_ring_mark.dart';
 
 class WeeklyReportPage extends StatefulWidget {
@@ -36,7 +36,10 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      AppThemedPage(builder: (context, _) => _buildPage(context));
+
+  Widget _buildPage(BuildContext context) {
     final now = DateTime.now();
     final monday = now.subtract(Duration(days: now.weekday - 1));
     final dateRange = '${monday.month}/${monday.day} — ${now.month}/${now.day}';
@@ -270,41 +273,35 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                         ],
                       ),
                       SizedBox(height: 16),
-                      if (_data != null && _data!['suggestions'] != null)
-                        ...(_data!['suggestions'] as List).map(
-                          (s) => Padding(
-                            padding: EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  margin: EdgeInsets.only(top: 6, right: 10),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.sage,
+                      ...reportRecommendationMessages(_data).map(
+                        (message) => Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                margin: EdgeInsets.only(top: 6, right: 10),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.sage,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  message,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.inkSecondary,
+                                    height: 1.5,
                                   ),
                                 ),
-                                Expanded(
-                                  child: Text(
-                                    s.toString(),
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: AppColors.inkSecondary,
-                                      height: 1.5,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        )
-                      else
-                        Text(
-                          '记账越规律，省钱建议越精准哦～',
-                          style: TextStyle(fontSize: 14, color: AppColors.gray),
                         ),
+                      ),
                     ],
                   ),
                 ),
@@ -319,7 +316,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
     final lastExp = (_data!['last_week_expense'] as num?)?.toDouble() ?? 0;
     if (lastExp > 0) {
       final diff = exp - lastExp;
-      if (diff < 0) return '本周比上周少花了 ¥${diff.abs().toStringAsFixed(2)}，继续保持！🎉';
+      if (diff < 0) return '本周比上周少花了 ¥${diff.abs().toStringAsFixed(2)}，继续保持。';
       if (diff > 0) return '本周比上周多花了 ¥${diff.toStringAsFixed(2)}，注意控制哦～';
     }
     return '本周总支出 ¥${exp.toStringAsFixed(2)}';
@@ -328,12 +325,19 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
   Widget _statItem(String label, String value, Color color) {
     return Column(
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            color: color,
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 112),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
           ),
         ),
         SizedBox(height: 4),
